@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Contacto Handyman</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      margin: 0;
+      background-color: #f8f8f8;
+      text-align: center;
+    }
+    h1 {
+      margin-bottom: 40px;
+    }
+    a {
+      display: block;
+      padding: 15px 30px;
+      margin: 15px;
+      text-decoration: none;
+      color: white;
+      border-radius: 10px;
+      font-size: 18px;
+    }
+    .call {
+      background-color: #28a745;
+    }
+    .whatsapp {
+      background-color: #25D366;
+    }
+  </style>
+</head>
+<body>
+  <h1>Contacto Handyman</h1>
+  <a class="call" href="tel:+19362197937">Llamar</a>
+  <a class="whatsapp" href="https://wa.me/+19362197937">WhatsApp</a>
+</body>
+</html>
