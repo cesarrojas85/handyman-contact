@@ -1,165 +1,185 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Galería HandyGo Services</title>
-  <style>
-    body {
-      margin: 0;
-      padding: 0;
-      font-family: Arial, sans-serif;
-      background-color: #4B0000;
-      color: white;
-      text-align: center;
-    }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Galería HandyGo Services</title>
+<style>
+  body {
+    margin: 0;
+    padding: 0;
+    font-family: Arial, sans-serif;
+    background-color: #4B0000;
+    color: white;
+    text-align: center;
+  }
 
-    h1 {
-      margin-top: 20px;
-    }
+  h1 {
+    margin-top: 20px;
+  }
 
-    .carousel {
-      position: relative;
-      width: 100%;
-      height: 100vh; /* altura completa del navegador */
-      overflow: hidden;
-    }
+  .carousel {
+    position: relative;
+    width: 100%;
+    height: 100vh; /* altura completa del navegador */
+    overflow: hidden;
+  }
 
-    .carousel-track {
-      display: flex;
-      transition: transform 0.5s ease-in-out;
-      height: 100%;
-    }
+  .carousel-track {
+    display: flex;
+    transition: transform 0.5s ease-in-out;
+    height: 100%;
+  }
 
-    .carousel-item {
-      min-width: 100%;
-      height: 100%;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      position: relative;
-    }
+  .carousel-item {
+    min-width: 100%;
+    height: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    position: relative;
+  }
 
-    .carousel-item img {
-      max-width: 100%;
-      max-height: 100%;
-      width: auto;
-      height: auto;
-      object-fit: contain; /* muestra la imagen completa */
-      display: block;
-    }
+  .carousel-item img {
+    max-width: 100%;
+    max-height: 100%;
+    width: auto;
+    height: auto;
+    object-fit: contain; /* muestra la imagen completa */
+  }
 
-    .carousel-caption {
-  position: absolute;
-  bottom: 20px;            /* separación desde la parte inferior */
-  left: 50%;               /* centro horizontal */
-  transform: translateX(-50%); /* centra horizontalmente */
-  color: #FFD700;
-  font-weight: bold;
-  font-size: clamp(14px, 2vw, 24px);
-  text-shadow: 2px 2px 6px rgba(0,0,0,0.6);
-  background-color: rgba(0,0,0,0.3);
-  padding: 5px 10px;
-  border-radius: 5px;
-}
+  .carousel-caption {
+    position: absolute;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    color: #FFD700;
+    font-weight: bold;
+    font-size: clamp(14px, 2vw, 24px);
+    text-shadow: 2px 2px 6px rgba(0,0,0,0.6);
+    background-color: rgba(0,0,0,0.3);
+    padding: 5px 10px;
+    border-radius: 5px;
+  }
 
-    .carousel button {
-      position: absolute;
-      top: 50%;
-      transform: translateY(-50%);
-      background-color: rgba(0,0,0,0.5);
-      color: white;
-      border: none;
-      font-size: 2rem;
-      padding: 10px;
-      cursor: pointer;
-      border-radius: 50%;
-      z-index: 10;
-    }
+  .carousel button {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    background-color: rgba(0,0,0,0.5);
+    color: white;
+    border: none;
+    font-size: 2rem;
+    padding: 10px;
+    cursor: pointer;
+    border-radius: 50%;
+    z-index: 10;
+  }
 
-    .carousel .prev { left: 10px; }
-    .carousel .next { right: 10px; }
+  .carousel .prev { left: 10px; }
+  .carousel .next { right: 10px; }
 
-    .carousel button:hover {
-      background-color: rgba(0,0,0,0.8);
-    }
+  .carousel button:hover {
+    background-color: rgba(0,0,0,0.8);
+  }
 
-    /* Botón para regresar */
-    .back-button {
-      margin: 20px auto 40px;
-      padding: 12px 25px;
-      font-size: 18px;
-      font-weight: bold;
-      color: white;
-      background-color: #704950;
-      border: none;
-      border-radius: 8px;
-      cursor: pointer;
-      text-decoration: none;
-      display: inline-block;
-      transition: background-color 0.3s;
-    }
+  .back-button {
+    margin: 20px auto 40px;
+    padding: 12px 25px;
+    font-size: 18px;
+    font-weight: bold;
+    color: white;
+    background-color: #704950;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    text-decoration: none;
+    display: inline-block;
+    transition: background-color 0.3s;
+  }
 
-    .back-button:hover {
-      background-color: #8b5a6e;
-    }
-
-  </style>
+  .back-button:hover {
+    background-color: #8b5a6e;
+  }
+</style>
 </head>
 <body>
 
-  <h1>Home Repairs</h1>
+<h1>Home Repairs</h1>
 
-  <div class="carousel">
-    <div class="carousel-track">
-      <div class="carousel-item" data-caption="Interior Doors Installation/Fixing">
-        <img src="images/interior door.jpg" alt="Interior Doors Installation/Fixing">
-      </div>
-      <div class="carousel-item" data-caption="Minor Electrical Jobs">
-        <img src="images/outlet.jpg" alt="Minor Electrical Jobs">
-      </div>
-      <div class="carousel-item" data-caption="Residential Plumbing Services">
-        <img src="images/plumbing.jpg" alt="Residential Plumbing Services">
-      </div>
-      <div class="carousel-item" data-caption="Windows Installation">
-        <img src="images/window.jpg" alt="Windows Installation">
-      </div>
+<div class="carousel">
+  <div class="carousel-track">
+    <div class="carousel-item" data-caption="Interior Doors Installation/Fixing">
+      <img src="images/interior door.jpg" alt="Interior Doors Installation/Fixing">
     </div>
-
-    <button class="prev">&#10094;</button>
-    <button class="next">&#10095;</button>
-    <div class="carousel-caption"></div>
+    <div class="carousel-item" data-caption="Minor Electrical Jobs">
+      <img src="images/outlet.jpg" alt="Minor Electrical Jobs">
+    </div>
+    <div class="carousel-item" data-caption="Residential Plumbing Services">
+      <img src="images/plumbing.jpg" alt="Residential Plumbing Services">
+    </div>
+    <div class="carousel-item" data-caption="Windows Installation">
+      <img src="images/window.jpg" alt="Windows Installation">
+    </div>
   </div>
 
-  <!-- Botón para regresar -->
-  <a href="Services.html" class="back-button">← Services</a>
+  <button class="prev">&#10094;</button>
+  <button class="next">&#10095;</button>
+  <div class="carousel-caption"></div>
+</div>
 
-  <script>
-    const track = document.querySelector('.carousel-track');
-    const items = Array.from(track.children);
-    const nextBtn = document.querySelector('.next');
-    const prevBtn = document.querySelector('.prev');
-    const caption = document.querySelector('.carousel-caption');
+<a href="Services.html" class="back-button">← Regresar a Services</a>
 
-    let index = 0;
+<script>
+const track = document.querySelector('.carousel-track');
+const items = Array.from(track.children);
+const nextBtn = document.querySelector('.next');
+const prevBtn = document.querySelector('.prev');
+const caption = document.querySelector('.carousel-caption');
 
-    const updateCarousel = () => {
-      track.style.transform = `translateX(-${index * 100}%)`;
-      caption.textContent = items[index].dataset.caption;
+let index = 0;
+let startX = 0;
+let endX = 0;
+
+const updateCarousel = () => {
+  track.style.transform = `translateX(-${index * 100}%)`;
+  caption.textContent = items[index].dataset.caption;
+}
+
+updateCarousel();
+
+// Botones
+nextBtn.addEventListener('click', () => {
+  index = (index + 1) % items.length;
+  updateCarousel();
+});
+
+prevBtn.addEventListener('click', () => {
+  index = (index - 1 + items.length) % items.length;
+  updateCarousel();
+});
+
+// Eventos táctiles para swipe
+track.addEventListener('touchstart', (e) => {
+  startX = e.touches[0].clientX;
+});
+
+track.addEventListener('touchmove', (e) => {
+  endX = e.touches[0].clientX;
+});
+
+track.addEventListener('touchend', () => {
+  const diff = startX - endX;
+  if (Math.abs(diff) > 50) { // mínimo swipe de 50px
+    if (diff > 0) {
+      index = (index + 1) % items.length; // swipe izquierda → siguiente
+    } else {
+      index = (index - 1 + items.length) % items.length; // swipe derecha → anterior
     }
-
     updateCarousel();
-
-    nextBtn.addEventListener('click', () => {
-      index = (index + 1) % items.length;
-      updateCarousel();
-    });
-
-    prevBtn.addEventListener('click', () => {
-      index = (index - 1 + items.length) % items.length;
-      updateCarousel();
-    });
-  </script>
+  }
+});
+</script>
 
 </body>
 </html>
