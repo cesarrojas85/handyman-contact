@@ -21,7 +21,7 @@
   .carousel {
     position: relative;
     width: 100%;
-    height: 100vh; /* altura completa del navegador */
+    height: 100vh;
     overflow: hidden;
   }
 
@@ -45,7 +45,7 @@
     max-height: 100%;
     width: auto;
     height: auto;
-    object-fit: contain; /* muestra la imagen completa */
+    object-fit: contain;
   }
 
   .carousel-caption {
@@ -83,6 +83,13 @@
     background-color: rgba(0,0,0,0.8);
   }
 
+  /* Ocultar botones en pantallas pequeñas */
+  @media (max-width: 768px) {
+    .carousel button {
+      display: none;
+    }
+  }
+
   .back-button {
     margin: 20px auto 40px;
     padding: 12px 25px;
@@ -110,7 +117,7 @@
 <div class="carousel">
   <div class="carousel-track">
     <div class="carousel-item" data-caption="Interior Doors Installation/Fixing">
-      <img src="images/interior door.jpg" alt="Interior Doors Installation/Fixing">
+      <img src="images/interior-door.jpg" alt="Interior Doors Installation/Fixing">
     </div>
     <div class="carousel-item" data-caption="Minor Electrical Jobs">
       <img src="images/outlet.jpg" alt="Minor Electrical Jobs">
@@ -128,7 +135,7 @@
   <div class="carousel-caption"></div>
 </div>
 
-<a href="Services.html" class="back-button">← Services</a>
+<a href="Services.html" class="back-button">← Regresar a Services</a>
 
 <script>
 const track = document.querySelector('.carousel-track');
@@ -139,7 +146,7 @@ const caption = document.querySelector('.carousel-caption');
 
 let index = 0;
 let startX = 0;
-let endX = 0;
+let isDragging = false;
 
 const updateCarousel = () => {
   track.style.transform = `translateX(-${index * 100}%)`;
@@ -159,25 +166,30 @@ prevBtn.addEventListener('click', () => {
   updateCarousel();
 });
 
-// Eventos táctiles para swipe
+// Swipe táctil
 track.addEventListener('touchstart', (e) => {
   startX = e.touches[0].clientX;
+  isDragging = true;
 });
 
 track.addEventListener('touchmove', (e) => {
-  endX = e.touches[0].clientX;
+  if (!isDragging) return;
+  const currentX = e.touches[0].clientX;
+  const diff = startX - currentX;
+
+  if (Math.abs(diff) > 50) { // swipe mínimo
+    if (diff > 0) {
+      index = (index + 1) % items.length;
+    } else {
+      index = (index - 1 + items.length) % items.length;
+    }
+    updateCarousel();
+    isDragging = false; // evita múltiples swipes en un solo gesto
+  }
 });
 
 track.addEventListener('touchend', () => {
-  const diff = startX - endX;
-  if (Math.abs(diff) > 50) { // mínimo swipe de 50px
-    if (diff > 0) {
-      index = (index + 1) % items.length; // swipe izquierda → siguiente
-    } else {
-      index = (index - 1 + items.length) % items.length; // swipe derecha → anterior
-    }
-    updateCarousel();
-  }
+  isDragging = false;
 });
 </script>
 
