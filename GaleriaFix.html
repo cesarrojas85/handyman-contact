@@ -135,7 +135,7 @@
   <div class="carousel-caption"></div>
 </div>
 
-<a href="Services.html" class="back-button">← Regresar a Services</a>
+<a href="Services.html" class="back-button">← Services</a>
 
 <script>
 const track = document.querySelector('.carousel-track');
@@ -145,9 +145,8 @@ const prevBtn = document.querySelector('.prev');
 const caption = document.querySelector('.carousel-caption');
 
 let index = 0;
-let startX = 0;
-let isDragging = false;
 
+// Actualiza carrusel y caption
 const updateCarousel = () => {
   track.style.transform = `translateX(-${index * 100}%)`;
   caption.textContent = items[index].dataset.caption;
@@ -167,29 +166,24 @@ prevBtn.addEventListener('click', () => {
 });
 
 // Swipe táctil
+let startX = 0;
+
 track.addEventListener('touchstart', (e) => {
   startX = e.touches[0].clientX;
-  isDragging = true;
 });
 
-track.addEventListener('touchmove', (e) => {
-  if (!isDragging) return;
-  const currentX = e.touches[0].clientX;
-  const diff = startX - currentX;
+track.addEventListener('touchend', (e) => {
+  const endX = e.changedTouches[0].clientX;
+  const diff = startX - endX;
 
   if (Math.abs(diff) > 50) { // swipe mínimo
     if (diff > 0) {
-      index = (index + 1) % items.length;
+      index = (index + 1) % items.length; // izquierda → siguiente
     } else {
-      index = (index - 1 + items.length) % items.length;
+      index = (index - 1 + items.length) % items.length; // derecha → anterior
     }
     updateCarousel();
-    isDragging = false; // evita múltiples swipes en un solo gesto
   }
-});
-
-track.addEventListener('touchend', () => {
-  isDragging = false;
 });
 </script>
 
