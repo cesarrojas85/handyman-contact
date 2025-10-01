@@ -21,19 +21,17 @@
   .carousel {
     position: relative;
     width: 100%;
-    height: 100vh;
+    max-height: 90vh;
     overflow: hidden;
   }
 
   .carousel-track {
     display: flex;
     transition: transform 0.5s ease-in-out;
-    height: 100%;
   }
 
   .carousel-item {
     min-width: 100%;
-    height: 100%;
     display: flex;
     justify-content: center;
     align-items: center;
@@ -41,11 +39,10 @@
   }
 
   .carousel-item img {
-    max-width: 100%;
-    max-height: 100%;
-    width: auto;
-    height: auto;
+    width: 100%;
+    height: clamp(300px, 50vh, 800px);
     object-fit: contain;
+    display: block;
   }
 
   .carousel-caption {
@@ -83,7 +80,6 @@
     background-color: rgba(0,0,0,0.8);
   }
 
-  /* Ocultar botones en pantallas pequeñas */
   @media (max-width: 768px) {
     .carousel button {
       display: none;
@@ -117,7 +113,7 @@
 <div class="carousel">
   <div class="carousel-track">
     <div class="carousel-item" data-caption="Interior Doors Installation/Fixing">
-      <img src="images/interior door.jpg" alt="Interior Doors Installation/Fixing">
+      <img src="images/interior-door.jpg" alt="Interior Doors Installation/Fixing">
     </div>
     <div class="carousel-item" data-caption="Minor Electrical Jobs">
       <img src="images/outlet.jpg" alt="Minor Electrical Jobs">
@@ -130,8 +126,11 @@
     </div>
   </div>
 
+  <!-- Botones -->
   <button class="prev">&#10094;</button>
   <button class="next">&#10095;</button>
+
+  <!-- Caption -->
   <div class="carousel-caption"></div>
 </div>
 
@@ -140,21 +139,22 @@
 <script>
 const track = document.querySelector('.carousel-track');
 const items = Array.from(track.children);
+const carousel = document.querySelector('.carousel');
 const nextBtn = document.querySelector('.next');
 const prevBtn = document.querySelector('.prev');
 const caption = document.querySelector('.carousel-caption');
 
 let index = 0;
 
-// Actualiza carrusel y caption
-const updateCarousel = () => {
+function updateCarousel() {
   track.style.transform = `translateX(-${index * 100}%)`;
   caption.textContent = items[index].dataset.caption;
 }
 
+// Inicializar
 updateCarousel();
 
-// Botones
+// Botones desktop
 nextBtn.addEventListener('click', () => {
   index = (index + 1) % items.length;
   updateCarousel();
@@ -168,15 +168,15 @@ prevBtn.addEventListener('click', () => {
 // Swipe táctil
 let startX = 0;
 
-track.addEventListener('touchstart', (e) => {
+carousel.addEventListener('touchstart', (e) => {
   startX = e.touches[0].clientX;
 });
 
-track.addEventListener('touchend', (e) => {
+carousel.addEventListener('touchend', (e) => {
   const endX = e.changedTouches[0].clientX;
   const diff = startX - endX;
 
-  if (Math.abs(diff) > 50) { // swipe mínimo
+  if (Math.abs(diff) > 50) {
     if (diff > 0) {
       index = (index + 1) % items.length; // izquierda → siguiente
     } else {
