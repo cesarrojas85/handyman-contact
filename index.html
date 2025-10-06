@@ -46,6 +46,23 @@
   text-shadow: 2px 2px 6px rgba(0,0,0,0.6);
   font-size: clamp(18px, 5vw, 38px); 
 }
+     /* Logo del banner */
+    .logo-banner {
+      position: absolute;
+      top: 15px;         /* distancia desde la parte superior */
+      right: 20px;       /* distancia desde el borde derecho */
+      width: 100px;      /* tamaño del logo */
+      height: auto;
+      z-index: 2;        /* asegura que el logo quede encima de la imagen */
+      filter: drop-shadow(2px 2px 6px rgba(0,0,0,0.5)); /* sombra suave opcional */
+      transition: transform 0.3s ease, filter 0.3s ease;
+    }
+
+    .logo-banner:hover {
+      transform: scale(1.05);
+      filter: drop-shadow(3px 3px 8px rgba(255, 215, 0, 0.8));
+    }
+
   
       h1 {
       font-size: 22px;
@@ -110,6 +127,7 @@
   <!-- Banner superior tipo portada -->
   <div class="banner">
   <img src="images/san antonio skyview.jpg" alt="HandyGo Services skyview" class="banner-img">
+  <img src="images/logo.png" alt="Logo HandyGo Services" class="logo-banner">
   <div class="banner-text">
     HandyGo Services
   </div>
