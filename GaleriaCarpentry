@@ -1,1 +1,185 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Galería HandyGo Services</title>
+<style>
+  body {
+    margin: 0;
+    padding: 0;
+    font-family: Arial, sans-serif;
+    background-color: #4B0000;
+    color: white;
+    text-align: center;
+  }
 
+  h1 {
+    margin-top: 20px;
+  }
+
+  .carousel {
+    position: relative;
+    width: 100%;
+    max-height: 90vh;
+    overflow: hidden;
+  }
+
+  .carousel-track {
+    display: flex;
+    transition: transform 0.5s ease-in-out;
+  }
+
+  .carousel-item {
+    min-width: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    position: relative;
+  }
+
+  .carousel-item img {
+    width: 100%;
+    height: clamp(300px, 50vh, 800px);
+    object-fit: contain;
+    display: block;
+  }
+
+  .carousel-caption {
+    position: absolute;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    color: #FFD700;
+    font-weight: bold;
+    font-size: clamp(14px, 2vw, 24px);
+    text-shadow: 2px 2px 6px rgba(0,0,0,0.6);
+    background-color: rgba(0,0,0,0.3);
+    padding: 5px 10px;
+    border-radius: 5px;
+  }
+
+  .carousel button {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    background-color: rgba(0,0,0,0.5);
+    color: white;
+    border: none;
+    font-size: 2rem;
+    padding: 10px;
+    cursor: pointer;
+    border-radius: 50%;
+    z-index: 10;
+  }
+
+  .carousel .prev { left: 10px; }
+  .carousel .next { right: 10px; }
+
+  .carousel button:hover {
+    background-color: rgba(0,0,0,0.8);
+  }
+
+  @media (max-width: 768px) {
+    .carousel button {
+      display: none;
+    }
+  }
+
+  .back-button {
+    margin: 120px auto 40px;
+    padding: 12px 25px;
+    font-size: 18px;
+    font-weight: bold;
+    color: white;
+    background-color: #704950;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    text-decoration: none;
+    display: inline-block;
+    transition: background-color 0.3s;
+  }
+
+  .back-button:hover {
+    background-color: #8b5a6e;
+  }
+</style>
+</head>
+<body>
+
+<h1>Carpentry</h1>
+
+<div class="carousel">
+  <div class="carousel-track">
+    <div class="carousel-item" data-caption="Pergola">
+      <img src="images/pergola1.jpg" alt="Pergola">
+    </div>
+    <div class="carousel-item" data-caption="Pergola">
+      <img src="images/pergola2.jpg" alt="Pergola">
+    </div>
+  </div>
+
+  <!-- Botones -->
+  <button class="prev">&#10094;</button>
+  <button class="next">&#10095;</button>
+
+  <!-- Caption -->
+  <div class="carousel-caption"></div>
+</div>
+
+<a href="Services.html" class="back-button">← Services</a>
+
+<script>
+const track = document.querySelector('.carousel-track');
+const items = Array.from(track.children);
+const carousel = document.querySelector('.carousel');
+const nextBtn = document.querySelector('.next');
+const prevBtn = document.querySelector('.prev');
+const caption = document.querySelector('.carousel-caption');
+
+let index = 0;
+
+function updateCarousel() {
+  track.style.transform = `translateX(-${index * 100}%)`;
+  caption.textContent = items[index].dataset.caption;
+}
+
+// Inicializar
+updateCarousel();
+
+// Botones desktop
+nextBtn.addEventListener('click', () => {
+  index = (index + 1) % items.length;
+  updateCarousel();
+});
+
+prevBtn.addEventListener('click', () => {
+  index = (index - 1 + items.length) % items.length;
+  updateCarousel();
+});
+
+// Swipe táctil
+let startX = 0;
+
+carousel.addEventListener('touchstart', (e) => {
+  startX = e.touches[0].clientX;
+});
+
+carousel.addEventListener('touchend', (e) => {
+  const endX = e.changedTouches[0].clientX;
+  const diff = startX - endX;
+
+  if (Math.abs(diff) > 50) {
+    if (diff > 0) {
+      index = (index + 1) % items.length; // izquierda → siguiente
+    } else {
+      index = (index - 1 + items.length) % items.length; // derecha → anterior
+    }
+    updateCarousel();
+  }
+});
+</script>
+
+</body>
+</html>
