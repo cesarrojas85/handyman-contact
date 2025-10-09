@@ -73,9 +73,7 @@
     .spinner.active { display: inline-block; }
     @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
     .error { color: var(--bad); font-size: .9rem; margin-top: 8px; }
-    #budgetCard { margin-top: 20px; }
-    #salesCard { margin-top: 20px; }
-    #incomeCard { margin-top: 20px; }
+    #budgetCard, #salesCard, #incomeCard, #expensesCard { margin-top: 20px; }
   </style>
 </head>
 <body>
@@ -141,8 +139,10 @@
             <tbody id="financialSummary">
               <tr><td>Portafolio Cripto (Invertido)</td><td id="sumInvested">—</td></tr>
               <tr><td>Portafolio Cripto (Actual)</td><td id="sumCurrent">—</td></tr>
-              <tr><td>Ganancia/Pérdida</td><td id="sumPnL">—</td></tr>
+              <tr><td>Ganancia/Pérdida Cripto</td><td id="sumPnL">—</td></tr>
               <tr><td>Otros Ingresos</td><td id="sumIncomes">—</td></tr>
+              <tr><td>Gastos</td><td id="sumExpenses">—</td></tr>
+              <tr><td>Inversiones (Otras)</td><td id="sumOtherInvestments">—</td></tr>
               <tr><td>Saldo PayPal</td><td id="sumPaypal">—</td></tr>
               <tr><td><strong>Total Activos</strong></td><td id="sumTotal">—</td></tr>
             </tbody>
@@ -273,7 +273,7 @@
       </div>
     </div>
 
-    <!-- NUEVA TARJETA: OTROS INGRESOS -->
+    <!-- TARJETA: OTROS INGRESOS -->
     <div class="card" id="incomeCard">
       <h2>Otros Ingresos</h2>
       <div class="body">
@@ -312,6 +312,54 @@
         </table>
       </div>
     </div>
+
+    <!-- NUEVA TARJETA: GASTOS E INVERSIONES -->
+    <div class="card" id="expensesCard">
+      <h2>Gastos e Inversiones</h2>
+      <div class="body">
+        <div class="grid2">
+          <div>
+            <label class="small muted" for="expenseType">Tipo</label>
+            <select id="expenseType" class="select" aria-label="Seleccionar tipo de gasto o inversión">
+              <option value="Gasto">Gasto</option>
+              <option value="Inversión">Inversión</option>
+            </select>
+          </div>
+          <div>
+            <label class="small muted" for="expenseCategory">Categoría</label>
+            <select id="expenseCategory" class="select" aria-label="Seleccionar categoría de gasto o inversión">
+              <option value="Vivienda">Vivienda</option>
+              <option value="Transporte">Transporte</option>
+              <option value="Alimentación">Alimentación</option>
+              <option value="Inversiones Financieras">Inversiones Financieras</option>
+              <option value="Otros">Otros</option>
+            </select>
+          </div>
+          <div>
+            <label class="small muted" for="expenseDate">Fecha</label>
+            <input id="expenseDate" class="input" type="date" aria-label="Fecha de gasto o inversión" max="" />
+          </div>
+          <div>
+            <label class="small muted" for="expenseAmount">Monto (USD)</label>
+            <input id="expenseAmount" class="input" type="number" step="0.01" placeholder="Ej. 500.00" aria-label="Monto en USD" />
+          </div>
+          <div>
+            <label class="small muted" for="expenseDescription">Descripción (Opcional)</label>
+            <input id="expenseDescription" class="input" type="text" placeholder="Ej. Pago de renta" aria-label="Descripción del gasto o inversión" />
+          </div>
+          <div class="row" style="align-items:end;justify-content:flex-end">
+            <button id="btnAddExpense" class="btn" aria-label="Registrar gasto o inversión">➕ Registrar</button>
+          </div>
+        </div>
+        <div id="expenseError" class="error" role="alert"></div>
+        <table class="table-mini" id="expenseTable">
+          <thead>
+            <tr><th>Tipo</th><th>Categoría</th><th>Fecha</th><th>Monto USD</th><th>Descripción</th><th>Acción</th></tr>
+          </thead>
+          <tbody id="expenseTbody"></tbody>
+        </table>
+      </div>
+    </div>
   </div>
 
   <script>
@@ -331,6 +379,7 @@
       txs: [],
       sales: [],
       incomes: [],
+      expenses: [],
       paypal: 0,
       budget: 0,
       recommendations: {},
@@ -459,12 +508,14 @@
         STATE.txs = JSON.parse(localStorage.getItem('crypto_v5_txs') || '[]');
         STATE.sales = JSON.parse(localStorage.getItem('crypto_v5_sales') || '[]');
         STATE.incomes = JSON.parse(localStorage.getItem('crypto_v5_incomes') || '[]');
+        STATE.expenses = JSON.parse(localStorage.getItem('crypto_v5_expenses') || '[]');
         STATE.paypal = parseFloat(localStorage.getItem('crypto_v5_paypal') || '0') || 0;
         STATE.budget = parseFloat(localStorage.getItem('crypto_v5_budget') || '0') || 0;
       } catch {
         STATE.txs = [];
         STATE.sales = [];
         STATE.incomes = [];
+        STATE.expenses = [];
         STATE.paypal = 0;
         STATE.budget = 0;
       }
@@ -473,6 +524,7 @@
       renderTx();
       renderSales();
       renderIncomes();
+      renderExpenses();
       renderBudget();
     }
 
@@ -480,6 +532,7 @@
       localStorage.setItem('crypto_v5_txs', JSON.stringify(STATE.txs));
       localStorage.setItem('crypto_v5_sales', JSON.stringify(STATE.sales));
       localStorage.setItem('crypto_v5_incomes', JSON.stringify(STATE.incomes));
+      localStorage.setItem('crypto_v5_expenses', JSON.stringify(STATE.expenses));
       localStorage.setItem('crypto_v5_paypal', STATE.paypal);
       localStorage.setItem('crypto_v5_budget', STATE.budget);
     }
@@ -577,6 +630,31 @@
       });
     }
 
+    function renderExpenses() {
+      const tb = $('#expenseTbody');
+      if (!STATE.expenses.length) {
+        tb.innerHTML = '<tr><td colspan="6" class="muted small" style="text-align:center;">Sin gastos ni inversiones registrados</td></tr>';
+        return;
+      }
+      const fragment = document.createDocumentFragment();
+      STATE.expenses.forEach((e, idx) => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `<td>${e.type}</td><td>${e.category}</td><td>${e.date}</td><td>${fmt(e.amount, STATE.currency)}</td><td>${e.description || '—'}</td><td><button class="btn small" data-i="${idx}" aria-label="Eliminar gasto o inversión">🗑</button></td>`;
+        fragment.appendChild(tr);
+      });
+      tb.innerHTML = '';
+      tb.appendChild(fragment);
+      tb.querySelectorAll('button').forEach(b => {
+        b.onclick = () => {
+          const expense = STATE.expenses.splice(b.dataset.i, 1)[0];
+          STATE.paypal += expense.amount; // Restaurar el monto al saldo PayPal
+          saveLS();
+          renderExpenses();
+          updateTotals();
+        };
+      });
+    }
+
     function calculateGainLoss(coin, qty, salePrice, commission) {
       let totalQty = 0, totalCost = 0;
       STATE.txs.forEach(t => {
@@ -595,13 +673,15 @@
     function updateTotals() {
       const pieMode = document.querySelector('input[name="pieMode"]:checked').value;
       const sumInvEl = $('#sumInvested'), sumCurEl = $('#sumCurrent'), sumPnLEl = $('#sumPnL');
-      const sumIncomesEl = $('#sumIncomes'), sumPaypalEl = $('#sumPaypal'), sumTotalEl = $('#sumTotal');
+      const sumIncomesEl = $('#sumIncomes'), sumExpensesEl = $('#sumExpenses'), sumOtherInvestmentsEl = $('#sumOtherInvestments');
+      const sumPaypalEl = $('#sumPaypal'), sumTotalEl = $('#sumTotal');
       const sumInvPill = $('#sumInvestedPill'), sumCurPill = $('#sumCurrentPill'), sumPnLPill = $('#sumPnLPill');
       const coinSummary = $('#coinSummary');
       
-      let invested = 0, current = 0, totalCommission = 0, totalIncomes = 0;
+      let invested = 0, current = 0, totalCommission = 0, totalIncomes = 0, totalExpenses = 0, totalOtherInvestments = 0;
       const coinData = { BTC: { inv: 0, cur: 0, com: 0, qty: 0 }, ETH: { inv: 0, cur: 0, com: 0, qty: 0 }, SOL: { inv: 0, cur: 0, com: 0, qty: 0 } };
       
+      // Calcular criptomonedas
       STATE.txs.forEach(t => {
         const now = STATE.prices[t.coin];
         invested += t.usd;
@@ -622,19 +702,31 @@
         current += coinData[sym].cur;
       });
       
+      // Calcular ingresos
       STATE.incomes.forEach(i => {
         totalIncomes += i.amount;
       });
       
+      // Calcular gastos e inversiones
+      STATE.expenses.forEach(e => {
+        if (e.type === 'Gasto') {
+          totalExpenses += e.amount;
+        } else if (e.type === 'Inversión') {
+          totalOtherInvestments += e.amount;
+        }
+      });
+      
       const pnl = current - invested - totalCommission;
       const pnlPct = invested ? (pnl / invested) * 100 : 0;
-      const totalAssets = current + STATE.paypal;
+      const totalAssets = current + STATE.paypal + totalOtherInvestments;
       
       sumInvEl.textContent = fmt(invested, STATE.currency);
       sumCurEl.textContent = fmt(current, STATE.currency);
       sumPnLEl.textContent = `${pnl >= 0 ? '+' : ''}${fmt(pnl, STATE.currency)} (${pnlPct.toFixed(1)}%)`;
       sumPnLEl.style.color = pnl >= 0 ? 'var(--ok)' : 'var(--bad)';
       sumIncomesEl.textContent = fmt(totalIncomes, STATE.currency);
+      sumExpensesEl.textContent = fmt(totalExpenses, STATE.currency);
+      sumOtherInvestmentsEl.textContent = fmt(totalOtherInvestments, STATE.currency);
       sumPaypalEl.textContent = fmt(STATE.paypal, STATE.currency);
       sumTotalEl.textContent = fmt(totalAssets, STATE.currency);
       
@@ -653,12 +745,13 @@
         coinSummary.appendChild(tr);
       });
       
-      const labels = ['BTC', 'ETH', 'SOL', 'PayPal'];
+      const labels = ['BTC', 'ETH', 'SOL', 'PayPal', 'Otras Inversiones'];
       const dataInv = [
         pieMode === 'cur' ? coinData.BTC.cur : coinData.BTC.inv,
         pieMode === 'cur' ? coinData.ETH.cur : coinData.ETH.inv,
         pieMode === 'cur' ? coinData.SOL.cur : coinData.SOL.inv,
-        pieMode === 'cur' ? STATE.paypal : 0
+        pieMode === 'cur' ? STATE.paypal : 0,
+        pieMode === 'cur' ? totalOtherInvestments : 0
       ];
       $('#pieTitle').textContent = `Distribución del Portafolio (${pieMode === 'cur' ? 'por valor actual' : 'por inversión'})`;
       if (STATE.pie) STATE.pie.destroy();
@@ -668,7 +761,7 @@
           labels, 
           datasets: [{ 
             data: dataInv, 
-            backgroundColor: ['#f7931a', '#627eea', '#14f195', '#aaa'] 
+            backgroundColor: ['#f7931a', '#627eea', '#14f195', '#aaa', '#ff6f61'] 
           }] 
         },
         options: { plugins: { legend: { labels: { color: '#fff' } } } }
@@ -751,28 +844,33 @@
         try {
           const text = await file.text();
           const imported = JSON.parse(text);
-          if (!imported.txs || !Array.isArray(imported.txs) || !imported.sales || !Array.isArray(imported.sales) || !imported.incomes || !Array.isArray(imported.incomes)) throw new Error('Formato inválido');
+          if (!imported.txs || !Array.isArray(imported.txs) || 
+              !imported.sales || !Array.isArray(imported.sales) || 
+              !imported.incomes || !Array.isArray(imported.incomes) ||
+              !imported.expenses || !Array.isArray(imported.expenses)) throw new Error('Formato inválido');
           STATE.txs = imported.txs.filter(t => t.coin && t.date && t.usd && validateDate(t.date) && t.usd > 0);
           STATE.sales = imported.sales.filter(s => s.coin && s.date && s.qty > 0 && s.usd > 0 && s.salePrice > 0 && validateDate(s.date));
           STATE.incomes = imported.incomes.filter(i => i.category && i.date && i.amount > 0 && validateDate(i.date));
+          STATE.expenses = imported.expenses.filter(e => e.type && e.category && e.date && e.amount > 0 && validateDate(e.date));
           saveLS();
           renderTx();
           renderSales();
           renderIncomes();
+          renderExpenses();
           updateTotals();
-          alert('Transacciones, ventas e ingresos importados correctamente.');
+          alert('Transacciones, ventas, ingresos y gastos/inversiones importados correctamente.');
         } catch (e) {
-          $('#txError').textContent = 'Error al importar el archivo. Asegúrate de que sea un JSON válido con "txs", "sales" e "incomes".';
+          $('#txError').textContent = 'Error al importar el archivo. Asegúrate de que sea un JSON válido con "txs", "sales", "incomes" y "expenses".';
         }
       };
       input.click();
     };
     $('#btnExport').onclick = () => {
-      if (!STATE.txs.length && !STATE.sales.length && !STATE.incomes.length) {
-        alert('No hay transacciones, ventas ni ingresos que exportar.');
+      if (!STATE.txs.length && !STATE.sales.length && !STATE.incomes.length && !STATE.expenses.length) {
+        alert('No hay transacciones, ventas, ingresos ni gastos/inversiones que exportar.');
         return;
       }
-      const data = { txs: STATE.txs, sales: STATE.sales, incomes: STATE.incomes };
+      const data = { txs: STATE.txs, sales: STATE.sales, incomes: STATE.incomes, expenses: STATE.expenses };
       const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(data, null, 2));
       const link = document.createElement('a');
       link.setAttribute('href', dataStr);
@@ -786,12 +884,14 @@
       STATE.txs = [];
       STATE.sales = [];
       STATE.incomes = [];
+      STATE.expenses = [];
       STATE.paypal = 0;
       STATE.budget = 0;
       localStorage.clear();
       renderTx();
       renderSales();
       renderIncomes();
+      renderExpenses();
       renderBudget();
       $('#paypalBalance').value = '';
       $('#budgetInput').value = '';
@@ -877,6 +977,34 @@
       renderIncomes();
       updateTotals();
     };
+    $('#btnAddExpense').onclick = () => {
+      const type = $('#expenseType').value;
+      const category = $('#expenseCategory').value;
+      const date = $('#expenseDate').value;
+      const amount = parseFloat($('#expenseAmount').value) || 0;
+      const description = $('#expenseDescription').value.trim();
+      
+      if (!type || !category || !date || amount <= 0 || !validateDate(date)) {
+        $('#expenseError').textContent = 'Completa todos los campos correctamente (fecha no futura, monto positivo).';
+        return;
+      }
+      if (amount > STATE.paypal) {
+        $('#expenseError').textContent = `No tienes suficiente saldo en PayPal (${fmt(STATE.paypal, STATE.currency)}).`;
+        return;
+      }
+      
+      $('#expenseError').textContent = '';
+      STATE.expenses.unshift({ type, category, date, amount, description });
+      STATE.paypal -= amount;
+      $('#paypalBalance').value = STATE.paypal.toFixed(2);
+      
+      $('#expenseAmount').value = '';
+      $('#expenseDescription').value = '';
+      
+      saveLS();
+      renderExpenses();
+      updateTotals();
+    };
     $('#btnRefresh').onclick = async () => {
       await fetchPrices();
       await analyze90d();
@@ -889,6 +1017,7 @@
       $('#txDate').max = new Date().toISOString().split('T')[0];
       $('#saleDate').max = new Date().toISOString().split('T')[0];
       $('#incomeDate').max = new Date().toISOString().split('T')[0];
+      $('#expenseDate').max = new Date().toISOString().split('T')[0];
       loadLS();
       await fetchPrices();
       await analyze90d();
@@ -896,6 +1025,7 @@
       renderBudget();
       renderSales();
       renderIncomes();
+      renderExpenses();
       setInterval(async () => {
         await fetchPrices();
         updateTotals();
