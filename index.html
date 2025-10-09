@@ -101,29 +101,21 @@
       100% { opacity: 1; transform: translateY(0); }
     }
 
-    /* Logo con efecto combinado de sombra + brillo dorado */
+    /* Logo a la derecha */
     .logo-banner {
       position: relative;
       width: 140px;
       height: auto;
       z-index: 3;
+      filter: drop-shadow(2px 2px 6px rgba(0,0,0,0.5));
+      transition: transform 0.25s ease, filter 0.25s ease;
       cursor: pointer;
       margin-left: 10px;
-
-      /* Efecto visual base */
-      filter: drop-shadow(0px 3px 6px rgba(0, 0, 0, 0.6))
-              drop-shadow(0 0 8px rgba(255, 215, 0, 0.3))
-              brightness(1.05)
-              contrast(1.05);
-      transition: transform 0.3s ease, filter 0.3s ease;
     }
 
     .logo-banner:hover {
-      transform: scale(1.06);
-      filter: drop-shadow(0px 4px 10px rgba(255, 215, 0, 0.7))
-              drop-shadow(0 0 12px rgba(255, 215, 0, 0.8))
-              brightness(1.15)
-              contrast(1.1);
+      transform: scale(1.05);
+      filter: drop-shadow(3px 3px 8px rgba(255,215,0,0.8));
     }
 
     h1 {
