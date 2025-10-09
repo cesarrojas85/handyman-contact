@@ -57,8 +57,6 @@ tr:hover{background:#2a2a2a}
 .small{font-size:.86rem}
 .muted{color:var(--muted2)}
 .group-header{background:#222;color:var(--gold);font-weight:600;text-align:center;padding:6px 0;border-top:1px solid #333}
-.sub-summary{margin-top:16px;border-top:1px solid #333;padding-top:10px}
-.sub-summary table td, .sub-summary table th{font-size:.9rem;}
 #pieCanvas{max-height:240px}
 input[type="number"].edit-price {
   width: 100%;
@@ -119,28 +117,14 @@ input[type="number"].edit-price {
   <div class="card" id="portfolioCard">
     <h2>
       Portafolio (compras manuales + saldo PayPal)
-      <span style="float:right; font-size:0.8rem; color:var(--muted);">
-        Mostrar por:
-        <label><input type="radio" name="pieMode" value="inv" checked> Invertido</label>
-        <label style="margin-left:8px;"><input type="radio" name="pieMode" value="cur"> Valor actual</label>
-      </span>
     </h2>
     <div class="body">
-
-      <!-- Resumen por moneda MOVIDO ARRIBA -->
-      <div id="coinQuickSummary" style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:20px;">
-        <div class="pill"><div class="lab" id="labBTC">BTC Invertido</div><div class="val" id="sumBTC">$0.00</div></div>
-        <div class="pill"><div class="lab" id="labETH">ETH Invertido</div><div class="val" id="sumETH">$0.00</div></div>
-        <div class="pill"><div class="lab" id="labSOL">SOL Invertido</div><div class="val" id="sumSOL">$0.00</div></div>
+      <div class="row" style="justify-content:flex-end;gap:8px;margin-bottom:10px">
+        <button id="btnExport" class="btn">📤 Exportar</button>
+        <input type="file" id="fileImport" style="display:none" accept=".json">
+        <button id="btnImport" class="btn">📥 Importar</button>
       </div>
 
-      <!-- Pie Chart -->
-      <div style="margin-bottom:20px;">
-        <h3 class="small muted" id="pieTitle" style="margin-bottom:8px;">Distribución del Portafolio (por inversión)</h3>
-        <canvas id="pieCanvas"></canvas>
-      </div>
-
-      <!-- CONTINÚA TODO IGUAL -->
       <div class="grid2">
         <div>
           <div class="muted small">Saldo PayPal</div>
@@ -149,34 +133,6 @@ input[type="number"].edit-price {
         <div class="row" style="justify-content:flex-end;gap:10px">
           <button id="btnSavePayPal" class="btn">💾 Guardar</button>
           <button id="btnClearAll" class="btn" title="Borrar todo">🗑️ Limpiar</button>
-        </div>
-      </div>
-
-      <div class="tally">
-        <div class="pill"><div class="lab">Invertido</div><div class="val" id="sumInvested">$0.00</div></div>
-        <div class="pill"><div class="lab">Actual</div><div class="val" id="sumCurrent">$0.00</div></div>
-        <div class="pill"><div class="lab">P/L</div><div class="val" id="sumPnL">$0.00</div></div>
-      </div>
-
-      <div class="grid2" style="margin-top:14px">
-        <div>
-          <label class="small muted">Moneda</label>
-          <select id="txCoin" class="select">
-            <option value="BTC">BTC</option>
-            <option value="ETH">ETH</option>
-            <option value="SOL">SOL</option>
-          </select>
-        </div>
-        <div>
-          <label class="small muted">Fecha</label>
-          <input id="txDate" class="input" type="date" />
-        </div>
-        <div>
-          <label class="small muted">Monto USD</label>
-          <input id="txUsd" class="input" type="number" step="0.01" placeholder="Ej. 250.00" />
-        </div>
-        <div class="row" style="align-items:end;justify-content:flex-end">
-          <button id="btnAddTx" class="btn">➕ Agregar</button>
         </div>
       </div>
 
@@ -190,24 +146,17 @@ input[type="number"].edit-price {
 
 <script>
 const $=s=>document.querySelector(s);
-const fmt=n=>isFinite(n)?n.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2}):'—';
-let STATE={prices:{},txs:[],pie:null};
+let STATE={txs:[],paypal:0};
 
-function updateTotals(){
-  const pieMode=document.querySelector('input[name="pieMode"]:checked').value;
-  const coins={BTC:{inv:0,cur:0},ETH:{inv:0,cur:0},SOL:{inv:0,cur:0}};
-  let inv=0,cur=0;
-  STATE.txs.forEach(t=>{const now=STATE.prices[t.coin];inv+=t.usd;const val=(now*t.usd)/(t.buyPrice||now);cur+=val;coins[t.coin].inv+=t.usd;coins[t.coin].cur+=val;});
-  $('#sumBTC').textContent=`$${fmt(pieMode==='cur'?coins.BTC.cur:coins.BTC.inv)}`;
-  $('#sumETH').textContent=`$${fmt(pieMode==='cur'?coins.ETH.cur:coins.ETH.inv)}`;
-  $('#sumSOL').textContent=`$${fmt(pieMode==='cur'?coins.SOL.cur:coins.SOL.inv)}`;
-  $('#labBTC').textContent=`BTC ${pieMode==='cur'?'Actual':'Invertido'}`;
-  $('#labETH').textContent=`ETH ${pieMode==='cur'?'Actual':'Invertido'}`;
-  $('#labSOL').textContent=`SOL ${pieMode==='cur'?'Actual':'Invertido'}`;
-  $('#pieTitle').textContent=`Distribución del Portafolio (${pieMode==='cur'?'por valor actual':'por inversión'})`;
-}
-
-document.querySelectorAll('input[name="pieMode"]').forEach(el=>el.addEventListener('change',updateTotals));
+function saveLS(){localStorage.setItem('crypto_v5_txs',JSON.stringify(STATE.txs));localStorage.setItem('crypto_v5_paypal',STATE.paypal);}
+function loadLS(){STATE.txs=JSON.parse(localStorage.getItem('crypto_v5_txs')||'[]');STATE.paypal=parseFloat(localStorage.getItem('crypto_v5_paypal')||'0')||0;renderTx();}
+function renderTx(){const tb=$('#txTbody');tb.innerHTML='';if(!STATE.txs.length){tb.innerHTML='<tr><td colspan="5" style="text-align:center;color:#aaa;">Sin registros</td></tr>';return;}STATE.txs.forEach((t,i)=>{const tr=document.createElement('tr');tr.innerHTML=`<td>${t.date}</td><td>${t.coin}</td><td>$${t.usd.toFixed(2)}</td><td>${t.buyPrice.toFixed(2)}</td><td><button class="btn small" data-i="${i}">🗑️</button></td>`;tb.appendChild(tr);});tb.querySelectorAll('button').forEach(b=>b.onclick=()=>{STATE.txs.splice(b.dataset.i,1);saveLS();renderTx();});}
+$('#btnExport').onclick=()=>{const blob=new Blob([JSON.stringify({txs:STATE.txs,paypal:STATE.paypal},null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='crypto_backup.json';a.click();};
+$('#btnImport').onclick=()=>$('#fileImport').click();
+$('#fileImport').onchange=e=>{const f=e.target.files[0];if(!f)return;const reader=new FileReader();reader.onload=()=>{try{const d=JSON.parse(reader.result);if(d.txs){STATE.txs=d.txs;STATE.paypal=d.paypal||0;saveLS();renderTx();alert('Datos importados correctamente.');}else alert('Archivo no válido.');}catch{alert('Error al importar.');}};reader.readAsText(f);};
+$('#btnSavePayPal').onclick=()=>{STATE.paypal=parseFloat($('#paypalBalance').value)||0;saveLS();alert('Saldo guardado.');};
+$('#btnClearAll').onclick=()=>{if(!confirm('¿Borrar todo?'))return;STATE.txs=[];STATE.paypal=0;localStorage.clear();renderTx();};
+loadLS();
 </script>
 </body>
 </html>
