@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Crypto Dashboard v2 — Optimizado</title>
+<title>Crypto Dashboard v2 — Órden y Grupos por Fecha</title>
 
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -61,6 +61,7 @@ canvas{width:100%;height:380px;max-height:380px;}
 .row{display:flex;align-items:center;justify-content:space-between;gap:10px}
 .small{font-size:.86rem}
 .muted{color:var(--muted2)}
+.group-header{background:#222;color:var(--gold);font-weight:600;text-align:center;padding:6px 0;border-top:1px solid #333}
 </style>
 </head>
 <body>
@@ -70,7 +71,7 @@ canvas{width:100%;height:380px;max-height:380px;}
   <div class="brand">Crypto Dashboard v2</div>
   <div class="meta">
     <span id="lastUpdate" class="small">—</span>
-    <button id="btnRefresh" class="btn">🔄 Actualizar ahora</button>
+    <button id="btnRefresh" class="btn">🔄 Actualizar</button>
   </div>
 </div>
 
@@ -150,32 +151,48 @@ const $=s=>document.querySelector(s);const fmt=n=>isFinite(n)?n.toLocaleString(u
 const COINS=[{id:'bitcoin',sym:'BTC',priceEl:'#btc',recoEl:'#btc-reco',trendEl:'#btc-trend'},{id:'ethereum',sym:'ETH',priceEl:'#eth',recoEl:'#eth-reco',trendEl:'#eth-trend'},{id:'solana',sym:'SOL',priceEl:'#sol',recoEl:'#sol-reco',trendEl:'#sol-trend'}];
 let STATE={prices:{},chart:null,txs:[],paypal:0};
 
-async function fetchPrices(){const ids=COINS.map(c=>c.id).join(',');const url=`https://api.coingecko.com/api/v3/simple/price?ids=${ids}&vs_currencies=usd`;const res=await fetch(url);const d=await res.json();
+/* === FUNCIONES PRINCIPALES === */
+async function fetchPrices(){const ids=COINS.map(c=>c.id).join(',');const res=await fetch(`https://api.coingecko.com/api/v3/simple/price?ids=${ids}&vs_currencies=usd`);const d=await res.json();
 STATE.prices={BTC:d.bitcoin.usd,ETH:d.ethereum.usd,SOL:d.solana.usd};
 COINS.forEach(c=>$(c.priceEl).textContent=`$${fmt(STATE.prices[c.sym])}`);$('#hora').textContent='Última actualización: '+new Date().toLocaleTimeString();$('#lastUpdate').textContent=$('#hora').textContent;}
-
 async function fetchHistory(id,days){const r=await fetch(`https://api.coingecko.com/api/v3/coins/${id}/market_chart?vs_currency=usd&days=${days}`);return r.json();}
 async function analyze90d(){const out=await Promise.all(COINS.map(c=>fetchHistory(c.id,90)));const stats=out.map(d=>{const p=d.prices.map(x=>x[1]);const start=p[0],end=p[p.length-1];const ret=(end-start)/start;const m=p.reduce((a,b)=>a+b,0)/p.length;const v=p.reduce((a,b)=>a+(b-m)**2,0)/p.length;const vol=Math.sqrt(v)/m;const sma7=p.slice(-7).reduce((a,b)=>a+b,0)/7;const sma30=p.slice(-30).reduce((a,b)=>a+b,0)/30;let trend='🟡 Neutra',cls='mid';if(sma7>sma30*1.02){trend='🟢 Alcista';cls='ok';}else if(sma7<sma30*0.98){trend='🔴 Bajista';cls='bad';}return{ret,vol,trend,cls};});
 const scores=stats.map(s=>s.ret/s.vol);const total=scores.reduce((a,b)=>a+b,0);const pct=scores.map(s=>s/total*100);
 COINS.forEach((c,i)=>{$(c.recoEl).textContent=`${pct[i].toFixed(1)}%`;const el=$(c.trendEl);el.textContent=stats[i].trend;el.className=`trend ${stats[i].cls}`;});}
-
 async function showChart(id,name){$('#titulo').textContent=`Histórico de ${name}`;const days=$('#rango').value;const d=await fetchHistory(id,days);const pts=d.prices.map(p=>({x:p[0],y:p[1]}));if(STATE.chart)STATE.chart.destroy();STATE.chart=new Chart($('#grafCanvas').getContext('2d'),{type:'line',data:{datasets:[{label:'Precio USD',data:pts,borderColor:'#ffcc00',backgroundColor:'rgba(255,204,0,.18)',fill:true,tension:.3,pointRadius:0}]},options:{scales:{x:{type:'time',time:{unit:days>90?'month':(days>30?'week':'day')},ticks:{color:'#fff'},grid:{color:'#333'}},y:{ticks:{color:'#fff'},grid:{color:'#333'}}},plugins:{legend:{labels:{color:'#fff'}}}}});}
 
 /* === PORTAFOLIO === */
 function loadLS(){try{STATE.txs=JSON.parse(localStorage.getItem('crypto_v2_txs')||'[]');STATE.paypal=parseFloat(localStorage.getItem('crypto_v2_paypal')||'0')||0;}catch{STATE.txs=[];STATE.paypal=0;}$('#paypalBalance').value=STATE.paypal||'';renderTx();}
 function saveLS(){localStorage.setItem('crypto_v2_txs',JSON.stringify(STATE.txs));}
-function renderTx(){const tb=$('#txTbody');tb.innerHTML='';STATE.txs.forEach((t,i)=>{const tr=document.createElement('tr');tr.innerHTML=`<td>${t.date}</td><td>${t.coin}</td><td>$${fmt(t.usd)}</td><td><button class="btn small" data-i="${i}">Quitar</button></td>`;tb.appendChild(tr);});tb.querySelectorAll('button').forEach(b=>b.onclick=()=>{STATE.txs.splice(b.dataset.i,1);saveLS();renderTx();});updateTotals();}
+function renderTx(){const tb=$('#txTbody');tb.innerHTML='';if(STATE.txs.length===0){tb.innerHTML='<tr><td colspan="4" class="muted small" style="text-align:center;">Sin compras registradas</td></tr>';updateTotals();return;}
+// ✅ Agrupar por fecha
+const grouped={};
+STATE.txs.forEach(t=>{if(!grouped[t.date])grouped[t.date]=[];grouped[t.date].push(t);});
+const dates=Object.keys(grouped).sort((a,b)=>new Date(b)-new Date(a)); // más recientes primero
+dates.forEach(date=>{
+const trHead=document.createElement('tr');
+trHead.innerHTML=`<td colspan="4" class="group-header">${new Date(date).toLocaleDateString('es-MX',{weekday:'long',year:'numeric',month:'long',day:'numeric'})}</td>`;
+tb.appendChild(trHead);
+grouped[date].forEach((t,i)=>{
+const tr=document.createElement('tr');
+tr.innerHTML=`<td>${t.date}</td><td>${t.coin}</td><td>$${fmt(t.usd)}</td><td><button class="btn small" data-date="${t.date}" data-coin="${t.coin}" data-usd="${t.usd}">Quitar</button></td>`;
+tb.appendChild(tr);
+});
+});
+tb.querySelectorAll('button').forEach(b=>{
+b.onclick=()=>{STATE.txs=STATE.txs.filter(x=>!(x.date===b.dataset.date&&x.coin===b.dataset.coin&&x.usd==b.dataset.usd));saveLS();renderTx();};
+});
+updateTotals();}
 function updateTotals(){const inv=STATE.txs.reduce((a,b)=>a+(+b.usd||0),0);$('#sumInvested').textContent=`$${fmt(inv)}`;$('#sumCurrent').textContent=`$${fmt(inv)}`;$('#sumPnL').textContent='$0.00';}
 
-/* === EVENTS === */
+/* === EVENTOS === */
 $('#tabla').onclick=e=>{const r=e.target.closest('tr[data-coin]');if(!r)return;const c=COINS.find(x=>x.id===r.dataset.coin);showChart(c.id,c.sym);};
 $('#rango').onchange=()=>{if(STATE.chart)showChart(COINS[0].id,COINS[0].sym);};
-$('#btnAddTx').onclick=()=>{const coin=$('#txCoin').value,date=$('#txDate').value,usd=parseFloat($('#txUsd').value);if(!coin||!date||!usd||usd<=0)return alert('Completa los datos.');STATE.txs.push({coin,date,usd});saveLS();renderTx();$('#txUsd').value='';};
+$('#btnAddTx').onclick=()=>{const coin=$('#txCoin').value,date=$('#txDate').value,usd=parseFloat($('#txUsd').value);if(!coin||!date||!usd||usd<=0)return alert('Completa los datos.');STATE.txs.unshift({coin,date,usd});saveLS();renderTx();$('#txUsd').value='';};
 $('#btnSavePayPal').onclick=()=>{const v=parseFloat($('#paypalBalance').value)||0;STATE.paypal=v;localStorage.setItem('crypto_v2_paypal',v);alert('Saldo PayPal guardado.');};
 $('#btnClearAll').onclick=()=>{if(!confirm('¿Borrar todo?'))return;STATE.txs=[];STATE.paypal=0;localStorage.clear();renderTx();$('#paypalBalance').value='';};
 $('#btnRefresh').onclick=async()=>{await fetchPrices();await analyze90d();};
 (async function init(){loadLS();await fetchPrices();await analyze90d();setInterval(fetchPrices,300000);})();
 </script>
-
 </body>
 </html>
