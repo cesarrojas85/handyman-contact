@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>HandyGo Services-Repairs</title>
+<title>HandyGo Services - Repairs</title>
 <style>
   body {
     margin: 0;
@@ -104,24 +104,75 @@
   .back-button:hover {
     background-color: #8b5a6e;
   }
+
+  /* 🔘 Botón de idioma flotante */
+  .lang-toggle {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    z-index: 1000;
+    background: rgba(255, 255, 255, 0.15);
+    backdrop-filter: blur(6px);
+    border: 1px solid rgba(255,255,255,0.4);
+    border-radius: 30px;
+    padding: 8px 14px;
+    cursor: pointer;
+    color: white;
+    font-weight: bold;
+    font-size: 16px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+    opacity: 0;
+    animation: fadeInLang 1s ease forwards 0.5s, pulse 2.5s infinite 2s;
+  }
+
+  @keyframes fadeInLang {
+    from { opacity: 0; transform: scale(0.8); }
+    to { opacity: 1; transform: scale(1); }
+  }
+
+  @keyframes pulse {
+    0%, 100% { box-shadow: 0 0 8px rgba(255,215,0,0.3); }
+    50% { box-shadow: 0 0 16px rgba(255,215,0,0.7); }
+  }
+
+  .lang-toggle:hover {
+    background: rgba(255, 215, 0, 0.35);
+    transform: scale(1.05);
+  }
+
+  @media (max-width: 480px) {
+    .lang-toggle {
+      bottom: 15px;
+      right: 15px;
+      font-size: 14px;
+      padding: 6px 12px;
+    }
+  }
 </style>
 </head>
 <body>
 
-<h1>Home Repairs</h1>
+<!-- Botón de idioma -->
+<div class="lang-toggle" id="lang-toggle">🇺🇸 EN</div>
+
+<h1 id="page-title">Home Repairs</h1>
 
 <div class="carousel">
   <div class="carousel-track">
-    <div class="carousel-item" data-caption="Interior Doors Installation/Fixing">
+    <div class="carousel-item" data-caption-en="Interior Doors Installation / Fixing" data-caption-es="Instalación y reparación de puertas interiores">
       <img src="images/interior door.jpg" alt="Interior Doors Installation/Fixing">
     </div>
-    <div class="carousel-item" data-caption="Minor Electrical Jobs">
+    <div class="carousel-item" data-caption-en="Minor Electrical Jobs" data-caption-es="Trabajos eléctricos menores">
       <img src="images/outlet.jpg" alt="Minor Electrical Jobs">
     </div>
-    <div class="carousel-item" data-caption="Residential Plumbing Services">
+    <div class="carousel-item" data-caption-en="Residential Plumbing Services" data-caption-es="Servicios de plomería residencial">
       <img src="images/plumbing.jpg" alt="Residential Plumbing Services">
     </div>
-    <div class="carousel-item" data-caption="Windows Installation">
+    <div class="carousel-item" data-caption-en="Windows Installation" data-caption-es="Instalación de ventanas">
       <img src="images/window.jpg" alt="Windows Installation">
     </div>
   </div>
@@ -131,10 +182,10 @@
   <button class="next">&#10095;</button>
 
   <!-- Caption -->
-  <div class="carousel-caption"></div>
+  <div class="carousel-caption" id="carousel-caption"></div>
 </div>
 
-<a href="Services.html" class="back-button">← Services</a>
+<a href="Services.html" class="back-button" id="back-button">← Services</a>
 
 <script>
 const track = document.querySelector('.carousel-track');
@@ -142,13 +193,16 @@ const items = Array.from(track.children);
 const carousel = document.querySelector('.carousel');
 const nextBtn = document.querySelector('.next');
 const prevBtn = document.querySelector('.prev');
-const caption = document.querySelector('.carousel-caption');
+const caption = document.getElementById('carousel-caption');
 
 let index = 0;
+let currentLang = localStorage.getItem('preferredLang') || (navigator.language.startsWith('es') ? 'es' : 'en');
 
+// 🖼️ Actualiza el carrusel según el idioma
 function updateCarousel() {
   track.style.transform = `translateX(-${index * 100}%)`;
-  caption.textContent = items[index].dataset.caption;
+  const item = items[index];
+  caption.textContent = currentLang === 'es' ? item.dataset.captionEs : item.dataset.captionEn;
 }
 
 // Inicializar
@@ -167,23 +221,44 @@ prevBtn.addEventListener('click', () => {
 
 // Swipe táctil
 let startX = 0;
-
-carousel.addEventListener('touchstart', (e) => {
-  startX = e.touches[0].clientX;
-});
-
+carousel.addEventListener('touchstart', (e) => startX = e.touches[0].clientX);
 carousel.addEventListener('touchend', (e) => {
   const endX = e.changedTouches[0].clientX;
   const diff = startX - endX;
-
   if (Math.abs(diff) > 50) {
-    if (diff > 0) {
-      index = (index + 1) % items.length; // izquierda → siguiente
-    } else {
-      index = (index - 1 + items.length) % items.length; // derecha → anterior
-    }
+    index = diff > 0 ? (index + 1) % items.length : (index - 1 + items.length) % items.length;
     updateCarousel();
   }
+});
+
+// 🌐 Sistema de idioma
+const texts = {
+  en: {
+    pageTitle: "Home Repairs",
+    backButton: "← Services",
+    lang: "🇺🇸 EN"
+  },
+  es: {
+    pageTitle: "Reparaciones del Hogar",
+    backButton: "← Servicios",
+    lang: "🇲🇽 ES"
+  }
+};
+
+function applyLanguage(lang) {
+  document.getElementById('page-title').textContent = texts[lang].pageTitle;
+  document.getElementById('back-button').textContent = texts[lang].backButton;
+  document.getElementById('lang-toggle').innerHTML = texts[lang].lang;
+  currentLang = lang;
+  updateCarousel();
+}
+
+applyLanguage(currentLang);
+
+document.getElementById('lang-toggle').addEventListener('click', () => {
+  currentLang = currentLang === 'en' ? 'es' : 'en';
+  localStorage.setItem('preferredLang', currentLang);
+  applyLanguage(currentLang);
 });
 </script>
 
