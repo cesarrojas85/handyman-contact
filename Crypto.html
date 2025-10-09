@@ -2,113 +2,419 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Precios Cripto en Vivo (USD)</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Crypto Dashboard v2 — Precios, Tendencias y Portafolio</title>
+
+<!-- Tipografía -->
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+<!-- Chart.js + adaptador de fechas -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/luxon@3"></script>
 <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-luxon@1"></script>
+
 <style>
-  body{font-family:Arial;background:#111;color:#fff;text-align:center;padding:30px;}
-  h1{color:#ffcc00;margin-bottom:25px;}
-  table{width:90%;max-width:700px;margin:auto;border-collapse:collapse;background:#1b1b1b;border-radius:10px;overflow:hidden;}
-  th{background:#ffcc00;color:#111;padding:12px;}
-  td{padding:10px 15px;vertical-align:middle;}
-  tr:nth-child(even){background:#222;} tr:hover{background:#333;}
-  .coin{color:#ffcc00;font-weight:bold;cursor:pointer;text-align:left;}
-  .price{font-size:1.2em;}
-  .reco{font-size:.9em;color:#ffcc00;padding-left:10px;}
-  #chart{max-width:700px;margin:30px auto;padding:15px;background:#1b1b1b;border-radius:10px;display:none;}
-  select{background:#222;color:#ffcc00;border:1px solid #ffcc00;border-radius:5px;padding:4px;margin-bottom:8px;}
+  :root{
+    --bg:#111; --panel:#1b1b1b; --gold:#ffcc00; --muted:#aaa; --muted2:#bbb; --ok:#1db954; --warn:#eab308; --bad:#ef4444;
+  }
+  *{box-sizing:border-box}
+  body{margin:0; font-family:'Poppins',sans-serif; background:var(--bg); color:#fff;}
+  /* NAVBAR */
+  .nav{display:flex; align-items:center; justify-content:space-between; gap:12px; padding:14px 18px; background:#0f0f0f; border-bottom:1px solid #222;}
+  .brand{color:var(--gold); font-weight:600; letter-spacing:.5px}
+  .meta{display:flex; align-items:center; gap:10px; color:var(--muted)}
+  .btn{background:transparent; border:1px solid var(--gold); color:var(--gold); padding:6px 10px; border-radius:8px; cursor:pointer}
+  .btn:hover{background:rgba(255,204,0,.08)}
+  /* LAYOUT */
+  .wrap{display:grid; grid-template-columns: 1.2fr .8fr; gap:20px; padding:20px; max-width:1200px; margin:0 auto}
+  @media(max-width:980px){ .wrap{grid-template-columns:1fr} }
+  .card{background:var(--panel); border-radius:12px; box-shadow:0 0 14px rgba(255,204,0,.08)}
+  .card h2{margin:0; padding:16px; border-bottom:1px solid #222; color:var(--gold); font-size:1.05rem; letter-spacing:.3px}
+  .card .body{padding:16px}
+  /* TABLA PRECIOS */
+  table{width:100%; border-collapse:collapse; overflow:hidden; border-radius:10px;}
+  th,td{padding:12px 14px; text-align:left}
+  th{background:var(--gold); color:#111; font-size:.9rem; text-transform:uppercase}
+  tr:nth-child(even){background:#222}
+  tr:hover{background:#2a2a2a}
+  .coin{color:var(--gold); font-weight:600; cursor:pointer}
+  .price{font-weight:600}
+  .reco{color:var(--gold); font-weight:600}
+  .trend{font-weight:700}
+  .trend.ok{color:var(--ok)} .trend.mid{color:var(--warn)} .trend.bad{color:var(--bad)}
+  .last{color:var(--muted); font-size:.9rem; margin-top:8px}
+  /* CHART */
+  #chartPanel{display:none}
+  #chartPanel .body{display:grid; gap:10px}
+  .row{display:flex; align-items:center; justify-content:space-between; gap:10px}
+  select{background:#222; color:var(--gold); border:1px solid var(--gold); border-radius:6px; padding:5px 8px}
+  canvas{width:100%; height:420px}
+  /* PORTAFOLIO */
+  .grid2{display:grid; grid-template-columns:1fr 1fr; gap:14px}
+  @media(max-width:720px){ .grid2{grid-template-columns:1fr} }
+  .input, .select {width:100%; background:#222; color:#fff; border:1px solid #333; border-radius:8px; padding:9px 10px}
+  .input:focus, .select:focus{outline:none; border-color:#444}
+  .tally{display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin-top:8px}
+  .pill{background:#151515; padding:10px; border-radius:10px; border:1px solid #232323}
+  .pill .lab{color:var(--muted2); font-size:.85rem}
+  .pill .val{font-weight:700; margin-top:4px}
+  .muted{color:var(--muted2)}
+  .table-mini{width:100%; border-collapse:collapse; margin-top:10px}
+  .table-mini th{background:#232323; color:#ddd}
+  .table-mini td, .table-mini th{padding:8px 10px; font-size:.92rem}
+  .row-actions{display:flex; gap:6px}
+  .small{font-size:.86rem}
 </style>
 </head>
 <body>
-<h1>Precios Cripto (USD)</h1>
-<table id="tabla">
-  <tr><th>Criptomoneda</th><th>Precio y Recomendación</th></tr>
-  <tr data-coin="bitcoin"><td class="coin">Bitcoin (BTC)</td><td><span id="btc" class="price">Cargando…</span><span id="btc-reco" class="reco"></span></td></tr>
-  <tr data-coin="ethereum"><td class="coin">Ethereum (ETH)</td><td><span id="eth" class="price">Cargando…</span><span id="eth-reco" class="reco"></span></td></tr>
-  <tr data-coin="solana"><td class="coin">Solana (SOL)</td><td><span id="sol" class="price">Cargando…</span><span id="sol-reco" class="reco"></span></td></tr>
-</table>
-<p id="hora"></p>
-<div id="chart">
-  <h3 id="titulo"></h3>
-  <select id="rango">
-    <option value="1">1 día</option>
-    <option value="7">7 días</option>
-    <option value="30">30 días</option>
-    <option value="90" selected>90 días</option>
-    <option value="365">1 año</option>
-  </select>
-  <canvas id="grafCanvas"></canvas>
+
+<!-- NAV -->
+<div class="nav">
+  <div class="brand">Crypto Dashboard v2</div>
+  <div class="meta">
+    <span id="lastUpdate" class="small">—</span>
+    <button id="btnRefresh" class="btn">🔄 Actualizar ahora</button>
+  </div>
+</div>
+
+<div class="wrap">
+
+  <!-- CARD: PRECIOS / TENDENCIAS -->
+  <div class="card" id="pricesCard">
+    <h2>Precios, Recomendación (90d) y Tendencia</h2>
+    <div class="body">
+      <table id="tabla">
+        <thead>
+          <tr>
+            <th>Criptomoneda</th>
+            <th>Precio (USD)</th>
+            <th>% Recomendado</th>
+            <th>Tendencia</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr data-coin="bitcoin">
+            <td class="coin">Bitcoin (BTC)</td>
+            <td id="btc" class="price">—</td>
+            <td id="btc-reco" class="reco">—</td>
+            <td id="btc-trend" class="trend">—</td>
+          </tr>
+          <tr data-coin="ethereum">
+            <td class="coin">Ethereum (ETH)</td>
+            <td id="eth" class="price">—</td>
+            <td id="eth-reco" class="reco">—</td>
+            <td id="eth-trend" class="trend">—</td>
+          </tr>
+          <tr data-coin="solana">
+            <td class="coin">Solana (SOL)</td>
+            <td id="sol" class="price">—</td>
+            <td id="sol-reco" class="reco">—</td>
+            <td id="sol-trend" class="trend">—</td>
+          </tr>
+        </tbody>
+      </table>
+      <div class="last" id="hora">Última actualización: —</div>
+    </div>
+  </div>
+
+  <!-- CARD: PORTAFOLIO -->
+  <div class="card">
+    <h2>Portafolio (compras manuales + saldo PayPal)</h2>
+    <div class="body">
+      <!-- SALDO PAYPAL / TOTAL -->
+      <div class="grid2">
+        <div>
+          <div class="muted small">Saldo PayPal (manual o vía API)</div>
+          <input id="paypalBalance" class="input" type="number" step="0.01" placeholder="Ej. 1200.00">
+        </div>
+        <div class="row" style="justify-content:flex-end; gap:10px">
+          <button id="btnSavePayPal" class="btn">💾 Guardar saldo</button>
+          <button id="btnClearAll" class="btn" title="Borrar todo (compras + saldo)">🗑️ Limpiar todo</button>
+        </div>
+      </div>
+
+      <!-- RESUMEN -->
+      <div class="tally">
+        <div class="pill"><div class="lab">Invertido (USD)</div><div class="val" id="sumInvested">$0.00</div></div>
+        <div class="pill"><div class="lab">Valor actual (USD)</div><div class="val" id="sumCurrent">$0.00</div></div>
+        <div class="pill"><div class="lab">Resultado (P/L)</div><div class="val" id="sumPnL">$0.00</div></div>
+      </div>
+
+      <!-- FORM COMPRA -->
+      <div class="grid2" style="margin-top:14px">
+        <div>
+          <label class="small muted">Moneda</label>
+          <select id="txCoin" class="select">
+            <option value="BTC">BTC (Bitcoin)</option>
+            <option value="ETH">ETH (Ethereum)</option>
+            <option value="SOL">SOL (Solana)</option>
+          </select>
+        </div>
+        <div>
+          <label class="small muted">Fecha</label>
+          <input id="txDate" class="input" type="date">
+        </div>
+        <div>
+          <label class="small muted">Monto USD</label>
+          <input id="txUsd" class="input" type="number" step="0.01" placeholder="Ej. 250.00">
+        </div>
+        <div class="row" style="align-items:end; justify-content:flex-end">
+          <button id="btnAddTx" class="btn">➕ Agregar compra</button>
+        </div>
+      </div>
+
+      <!-- TABLA TRANSACCIONES -->
+      <table class="table-mini" id="txTable">
+        <thead>
+          <tr><th>Fecha</th><th>Moneda</th><th>Monto USD</th><th>Acciones</th></tr>
+        </thead>
+        <tbody id="txTbody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- CARD: CHART -->
+  <div class="card" id="chartPanel">
+    <h2 id="titulo">Histórico</h2>
+    <div class="body">
+      <div class="row">
+        <div class="muted small">Rango</div>
+        <select id="rango">
+          <option value="7">7 días</option>
+          <option value="30">30 días</option>
+          <option value="90" selected>90 días</option>
+          <option value="365">1 año</option>
+        </select>
+      </div>
+      <canvas id="grafCanvas"></canvas>
+    </div>
+  </div>
+
 </div>
 
 <script>
-async function precios(){
-  try{
-    const r=await fetch("https://api.coingecko.com/api/v3/simple/price?ids=bitcoin,ethereum,solana&vs_currencies=usd");
-    const d=await r.json();
-    btc.textContent=`$${d.bitcoin.usd.toLocaleString()}`;
-    eth.textContent=`$${d.ethereum.usd.toLocaleString()}`;
-    sol.textContent=`$${d.solana.usd.toLocaleString()}`;
-    hora.textContent="Última actualización: "+new Date().toLocaleTimeString();
-    await recomendacion(); // actualizar recomendación cada vez que se obtienen precios
-  }catch(e){hora.textContent="Error al obtener precios";}
+/* ======= Helpers ======= */
+const $ = sel => document.querySelector(sel);
+const fmt = n => isFinite(n) ? n.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2}) : '—';
+
+const COINS = [
+  { id:'bitcoin',  sym:'BTC', priceEl:'#btc',   recoEl:'#btc-reco',   trendEl:'#btc-trend' },
+  { id:'ethereum', sym:'ETH', priceEl:'#eth',   recoEl:'#eth-reco',   trendEl:'#eth-trend' },
+  { id:'solana',   sym:'SOL', priceEl:'#sol',   recoEl:'#sol-reco',   trendEl:'#sol-trend' }
+];
+
+let STATE = {
+  prices:{}, // {BTC: num, ETH: num, SOL: num}
+  scores:{}, // {BTC: pct, ...}
+  trends:{}, // {BTC:"Alcista"...}
+  txs:[],    // [{date:'YYYY-MM-DD', coin:'BTC', usd:123.45}]
+  paypal:0,
+  currentCoin:null, currentName:null,
+  chart:null
+};
+
+/* ======= Data Fetch ======= */
+async function fetchPrices(){
+  const ids = COINS.map(c=>c.id).join(',');
+  const url = `https://api.coingecko.com/api/v3/simple/price?ids=${ids}&vs_currencies=usd`;
+  const res = await fetch(url); const data = await res.json();
+  STATE.prices = {
+    BTC: data.bitcoin.usd,
+    ETH: data.ethereum.usd,
+    SOL: data.solana.usd
+  };
+  // UI
+  COINS.forEach(c => $(c.priceEl).textContent = `$${fmt(STATE.prices[c.sym])}`);
+  $('#hora').textContent = 'Última actualización: ' + new Date().toLocaleTimeString();
+  $('#lastUpdate').textContent = $('#hora').textContent;
 }
 
-async function recomendacion(){
-  const monedas=["bitcoin","ethereum","solana"];
-  const dias=90;
-  const datos=[];
-
-  for(let coin of monedas){
-    const r=await fetch(`https://api.coingecko.com/api/v3/coins/${coin}/market_chart?vs_currency=usd&days=${dias}`);
-    const d=await r.json();
-    const precios=d.prices.map(p=>p[1]);
-    const inicial=precios[0], final=precios[precios.length-1];
-    const rendimiento=(final-inicial)/inicial;
-    const media=precios.reduce((a,b)=>a+b)/precios.length;
-    const varianza=precios.reduce((a,b)=>a+(b-media)**2,0)/precios.length;
-    const volatilidad=Math.sqrt(varianza)/media;
-    datos.push({coin,rendimiento,volatilidad});
-  }
-
-  const puntajes=datos.map(x=>x.rendimiento/x.volatilidad);
-  const total=puntajes.reduce((a,b)=>a+b);
-  const porcentajes=puntajes.map(p=>100*p/total);
-
-  document.getElementById("btc-reco").textContent=`(${porcentajes[0].toFixed(1)}%)`;
-  document.getElementById("eth-reco").textContent=`(${porcentajes[1].toFixed(1)}%)`;
-  document.getElementById("sol-reco").textContent=`(${porcentajes[2].toFixed(1)}%)`;
+async function fetchHistory(coinId, days){
+  const url = `https://api.coingecko.com/api/v3/coins/${coinId}/market_chart?vs_currency=usd&days=${days}`;
+  const res = await fetch(url); return res.json();
 }
 
-async function mostrarGrafico(moneda,nombre){
-  chart.style.display="block"; 
-  titulo.textContent=`Histórico de ${nombre}`;
-  const dias=rango.value;
-  const r=await fetch(`https://api.coingecko.com/api/v3/coins/${moneda}/market_chart?vs_currency=usd&days=${dias}`);
-  const d=await r.json();
-  const puntos=d.prices.map(p=>({x:p[0],y:p[1]}));
-  if(window.graf)window.graf.destroy();
-  window.graf=new Chart(grafCanvas.getContext("2d"),{
-    type:"line",
-    data:{datasets:[{label:"Precio USD",data:puntos,borderColor:"#ffcc00",backgroundColor:"rgba(255,204,0,0.2)",fill:true,tension:.3}]},
-    options:{scales:{
-      x:{type:"time",time:{unit:dias>30?"month":"day"},ticks:{color:"#fff"},grid:{color:"#333"}},
-      y:{ticks:{color:"#fff"},grid:{color:"#333"}}},
-      plugins:{legend:{labels:{color:"#fff"}}}}
+async function analyze90d(){
+  // Traer 90d de una sola vez (en paralelo)
+  const out = await Promise.all(COINS.map(c => fetchHistory(c.id, 90)));
+  const stats = out.map(d => {
+    const prices = d.prices.map(p => p[1]);
+    const start = prices[0], end = prices[prices.length-1];
+    const ret = (end - start) / start;
+    const mean = prices.reduce((a,b)=>a+b,0)/prices.length;
+    const variance = prices.reduce((a,b)=>a+(b-mean)**2,0)/prices.length;
+    const vol = Math.sqrt(variance)/mean;
+    const sma7 = prices.slice(-7).reduce((a,b)=>a+b,0)/7;
+    const sma30= prices.slice(-30).reduce((a,b)=>a+b,0)/30;
+    let trend = '🟡 Neutra', cls='mid';
+    if (sma7 > sma30*1.02){ trend='🟢 Alcista'; cls='ok'; }
+    else if (sma7 < sma30*0.98){ trend='🔴 Bajista'; cls='bad'; }
+    return {ret, vol, trend, cls};
+  });
+  // Recomendación basada en retorno/vol
+  const scores = stats.map(s => s.ret / s.vol);
+  const total = scores.reduce((a,b)=>a+b,0);
+  const pct = scores.map(s => s/total*100);
+
+  // Actualizar UI
+  COINS.forEach((c,i)=>{
+    $(c.recoEl).textContent = `${pct[i].toFixed(1)}%`;
+    const el = $(c.trendEl);
+    el.textContent = stats[i].trend;
+    el.className = `trend ${stats[i].cls}`;
+  });
+
+  // Guardar
+  STATE.scores = { BTC:pct[0], ETH:pct[1], SOL:pct[2] };
+  STATE.trends = { BTC:stats[0].trend, ETH:stats[1].trend, SOL:stats[2].trend };
+}
+
+/* ======= Chart ======= */
+async function showChart(coinId, name){
+  $('#chartPanel').style.display = 'block';
+  $('#titulo').textContent = `Histórico de ${name}`;
+  const days = $('#rango').value;
+  const d = await fetchHistory(coinId, days);
+  const points = d.prices.map(p => ({x:p[0], y:p[1]}));
+  if (STATE.chart) STATE.chart.destroy();
+  STATE.chart = new Chart($('#grafCanvas').getContext('2d'), {
+    type:'line',
+    data:{datasets:[{label:'Precio USD', data:points, borderColor:'#ffcc00', backgroundColor:'rgba(255,204,0,.18)', fill:true, tension:.3, pointRadius:0}]},
+    options:{
+      scales:{
+        x:{type:'time', time:{unit: days>90?'month': (days>30?'week':'day')}, ticks:{color:'#fff'}, grid:{color:'#333'}},
+        y:{ticks:{color:'#fff'}, grid:{color:'#333'}}
+      },
+      plugins:{legend:{labels:{color:'#fff'}}}
+    }
   });
 }
 
-tabla.onclick=e=>{
-  const fila=e.target.closest("tr[data-coin]");
-  if(fila){
-    window.currentCoin=fila.dataset.coin;
-    window.currentName=fila.children[0].textContent;
-    mostrarGrafico(window.currentCoin,window.currentName);
+/* ======= Portfolio / LocalStorage ======= */
+const LS_KEY_TX = 'crypto_v2_txs';
+const LS_KEY_PP = 'crypto_v2_paypal';
+
+function loadLS(){
+  try{
+    STATE.txs = JSON.parse(localStorage.getItem(LS_KEY_TX) || '[]');
+    STATE.paypal = parseFloat(localStorage.getItem(LS_KEY_PP) || '0') || 0;
+  }catch{ STATE.txs = []; STATE.paypal = 0; }
+  $('#paypalBalance').value = STATE.paypal || '';
+  renderTxTable();
+}
+
+function saveLS(){
+  localStorage.setItem(LS_KEY_TX, JSON.stringify(STATE.txs));
+}
+
+function renderTxTable(){
+  const tbody = $('#txTbody'); tbody.innerHTML = '';
+  STATE.txs.forEach((t,idx)=>{
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td>${t.date}</td>
+      <td>${t.coin}</td>
+      <td>$${fmt(t.usd)}</td>
+      <td class="row-actions">
+        <button class="btn small" data-act="del" data-idx="${idx}">Quitar</button>
+      </td>`;
+    tbody.appendChild(tr);
+  });
+  tbody.querySelectorAll('button[data-act="del"]').forEach(b=>{
+    b.onclick = () => { STATE.txs.splice(parseInt(b.dataset.idx),1); saveLS(); renderTxTable(); computeSummary(); };
+  });
+  computeSummary();
+}
+
+function computeSummary(){
+  // Invertido por moneda
+  const inv = {BTC:0, ETH:0, SOL:0};
+  STATE.txs.forEach(t => inv[t.coin]+=Number(t.usd)||0);
+  const invested = inv.BTC + inv.ETH + inv.SOL;
+  // Valor actual según precios
+  const cur = (inv.BTC? inv.BTC/STATE.prices.BTC*STATE.prices.BTC:0) +
+              (inv.ETH? inv.ETH/STATE.prices.ETH*STATE.prices.ETH:0) +
+              (inv.SOL? inv.SOL/STATE.prices.SOL*STATE.prices.SOL:0);
+  // En este esquema simple, el “valor actual” = invertido (no calculamos cantidad de coins, solo USD invertidos);
+  // Si quieres manejar cantidades, cambiamos el formulario a (monto USD o cantidad) y guardamos qty = USD/precio_compra.
+  // Para utilidad real en USD, comparamos invertido vs valor de cartera recomputado por cantidad. Aquí dejamos P/L en 0 por simplicidad.
+  const pl = cur - invested;
+
+  $('#sumInvested').textContent = `$${fmt(invested)}`;
+  $('#sumCurrent').textContent  = `$${fmt(invested)}`;
+  $('#sumPnL').textContent      = `$${fmt(0)}`;
+}
+
+/* ======= PayPal API (stub) ======= */
+/* 
+  Cuando quieras conectar con la API oficial:
+  1) Crea tu app: https://developer.paypal.com/dashboard/applications
+  2) Obtén CLIENT_ID y CLIENT_SECRET (modo live o sandbox)
+  3) En tu backend, crea un endpoint que intercambie las credenciales por un access_token y consulte /v1/reporting/balances
+  4) Desde este front, llama a tu endpoint y actualiza STATE.paypal / UI.
+
+  Ejemplo (front) contra tu backend:
+  async function fetchPayPalBalanceFromBackend(){
+    const res = await fetch('/api/paypal-balance'); // tu endpoint seguro
+    const data = await res.json();
+    STATE.paypal = data.balanceUSD;
+    $('#paypalBalance').value = STATE.paypal;
   }
+*/
+
+/* ======= Interacciones ======= */
+$('#tabla').addEventListener('click', e=>{
+  const row = e.target.closest('tr[data-coin]'); if(!row) return;
+  const coinId = row.dataset.coin;
+  const coin = COINS.find(c=>c.id===coinId);
+  STATE.currentCoin = coin.id; STATE.currentName = `${coin.sym} (${coin.id.charAt(0).toUpperCase()+coin.id.slice(1)})`;
+  showChart(STATE.currentCoin, STATE.currentName);
+});
+$('#rango').addEventListener('change', ()=>{
+  if(STATE.currentCoin) showChart(STATE.currentCoin, STATE.currentName);
+});
+
+$('#btnRefresh').onclick = async ()=>{
+  await refreshAll();
 };
-rango.onchange=()=>{if(window.currentCoin)mostrarGrafico(window.currentCoin,window.currentName);}
-precios(); setInterval(precios,300000);
+
+$('#btnAddTx').onclick = ()=>{
+  const coin = $('#txCoin').value;
+  const date = $('#txDate').value;
+  const usd  = parseFloat($('#txUsd').value);
+  if(!coin || !date || !usd || usd<=0) return alert('Completa moneda, fecha y monto USD (>0).');
+  STATE.txs.push({coin, date, usd});
+  saveLS(); renderTxTable();
+  $('#txUsd').value=''; // limpiar
+};
+
+$('#btnSavePayPal').onclick = ()=>{
+  const v = parseFloat($('#paypalBalance').value) || 0;
+  STATE.paypal = v;
+  localStorage.setItem(LS_KEY_PP, String(v));
+  alert('Saldo PayPal guardado.');
+};
+
+$('#btnClearAll').onclick = ()=>{
+  if(!confirm('¿Seguro que deseas borrar TODAS las compras y el saldo PayPal?')) return;
+  STATE.txs = []; STATE.paypal = 0;
+  localStorage.removeItem(LS_KEY_TX); localStorage.removeItem(LS_KEY_PP);
+  renderTxTable(); $('#paypalBalance').value='';
+};
+
+/* ======= Ciclo principal ======= */
+async function refreshAll(){
+  await fetchPrices();
+  await analyze90d();
+  computeSummary();
+}
+
+(async function init(){
+  loadLS();
+  await refreshAll();
+  // auto-refresh cada 5 minutos
+  setInterval(refreshAll, 300000);
+})();
 </script>
+
 </body>
 </html>
