@@ -3,8 +3,10 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Precios Cripto en Vivo</title>
+<title>Precios Cripto en Vivo (USD)</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/luxon@3"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-luxon@1"></script>
 <style>
   body{font-family:Arial;background:#111;color:#fff;text-align:center;padding:30px;}
   h1{color:#ffcc00;margin-bottom:25px;}
@@ -40,8 +42,8 @@
 <script>
 async function precios(){
   try{
-    let r=await fetch("https://api.coingecko.com/api/v3/simple/price?ids=bitcoin,ethereum,solana&vs_currencies=usd");
-    let d=await r.json();
+    const r=await fetch("https://api.coingecko.com/api/v3/simple/price?ids=bitcoin,ethereum,solana&vs_currencies=usd");
+    const d=await r.json();
     btc.textContent=`$${d.bitcoin.usd.toLocaleString()}`;
     eth.textContent=`$${d.ethereum.usd.toLocaleString()}`;
     sol.textContent=`$${d.solana.usd.toLocaleString()}`;
@@ -50,26 +52,35 @@ async function precios(){
 }
 
 async function mostrarGrafico(moneda,nombre){
-  chart.style.display="block"; titulo.textContent=`Histórico de ${nombre}`;
-  let dias=rango.value;
-  let r=await fetch(`https://api.coingecko.com/api/v3/coins/${moneda}/market_chart?vs_currency=usd&days=${dias}`);
-  let d=await r.json();
-  let puntos=d.prices.map(p=>({x:new Date(p[0]),y:p[1]}));
+  chart.style.display="block"; 
+  titulo.textContent=`Histórico de ${nombre}`;
+  const dias=rango.value;
+  const r=await fetch(`https://api.coingecko.com/api/v3/coins/${moneda}/market_chart?vs_currency=usd&days=${dias}`);
+  const d=await r.json();
+  const puntos=d.prices.map(p=>({x:p[0],y:p[1]}));
   if(window.graf)window.graf.destroy();
   window.graf=new Chart(grafCanvas.getContext("2d"),{
     type:"line",
     data:{datasets:[{label:"Precio USD",data:puntos,borderColor:"#ffcc00",backgroundColor:"rgba(255,204,0,0.2)",fill:true,tension:.3}]},
-    options:{scales:{x:{type:"time",time:{unit:dias>30?"month":"day"},ticks:{color:"#fff"},grid:{color:"#333"}},
-                     y:{ticks:{color:"#fff"},grid:{color:"#333"}}},
-             plugins:{legend:{labels:{color:"#fff"}}}}
+    options:{
+      scales:{
+        x:{type:"time",time:{unit:dias>30?"month":"day"},ticks:{color:"#fff"},grid:{color:"#333"}},
+        y:{ticks:{color:"#fff"},grid:{color:"#333"}}
+      },
+      plugins:{legend:{labels:{color:"#fff"}}}
+    }
   });
 }
 
 tabla.onclick=e=>{
-  let fila=e.target.closest("tr[data-coin]");
-  if(fila)mostrarGrafico(fila.dataset.coin,fila.children[0].textContent);
+  const fila=e.target.closest("tr[data-coin]");
+  if(fila){
+    window.currentCoin=fila.dataset.coin;
+    window.currentName=fila.children[0].textContent;
+    mostrarGrafico(window.currentCoin,window.currentName);
+  }
 };
-rango.onchange=()=>{if(window.graf && window.currentCoin)mostrarGrafico(window.currentCoin,window.currentName);}
+rango.onchange=()=>{if(window.currentCoin)mostrarGrafico(window.currentCoin,window.currentName);}
 precios(); setInterval(precios,300000);
 </script>
 </body>
