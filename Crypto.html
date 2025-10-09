@@ -12,9 +12,11 @@
   h1{color:#ffcc00;margin-bottom:25px;}
   table{width:90%;max-width:700px;margin:auto;border-collapse:collapse;background:#1b1b1b;border-radius:10px;overflow:hidden;}
   th{background:#ffcc00;color:#111;padding:12px;}
-  td{padding:10px 15px;}
+  td{padding:10px 15px;vertical-align:middle;}
   tr:nth-child(even){background:#222;} tr:hover{background:#333;}
-  .coin{color:#ffcc00;font-weight:bold;cursor:pointer;}
+  .coin{color:#ffcc00;font-weight:bold;cursor:pointer;text-align:left;}
+  .price{font-size:1.2em;}
+  .reco{font-size:.9em;color:#ffcc00;padding-left:10px;}
   #chart{max-width:700px;margin:30px auto;padding:15px;background:#1b1b1b;border-radius:10px;display:none;}
   select{background:#222;color:#ffcc00;border:1px solid #ffcc00;border-radius:5px;padding:4px;margin-bottom:8px;}
 </style>
@@ -22,18 +24,19 @@
 <body>
 <h1>Precios Cripto (USD)</h1>
 <table id="tabla">
-  <tr><th>Criptomoneda</th><th>Precio</th></tr>
-  <tr data-coin="bitcoin"><td class="coin">Bitcoin (BTC)</td><td id="btc">Cargando…</td></tr>
-  <tr data-coin="ethereum"><td class="coin">Ethereum (ETH)</td><td id="eth">Cargando…</td></tr>
-  <tr data-coin="solana"><td class="coin">Solana (SOL)</td><td id="sol">Cargando…</td></tr>
+  <tr><th>Criptomoneda</th><th>Precio y Recomendación</th></tr>
+  <tr data-coin="bitcoin"><td class="coin">Bitcoin (BTC)</td><td><span id="btc" class="price">Cargando…</span><span id="btc-reco" class="reco"></span></td></tr>
+  <tr data-coin="ethereum"><td class="coin">Ethereum (ETH)</td><td><span id="eth" class="price">Cargando…</span><span id="eth-reco" class="reco"></span></td></tr>
+  <tr data-coin="solana"><td class="coin">Solana (SOL)</td><td><span id="sol" class="price">Cargando…</span><span id="sol-reco" class="reco"></span></td></tr>
 </table>
 <p id="hora"></p>
 <div id="chart">
   <h3 id="titulo"></h3>
   <select id="rango">
     <option value="1">1 día</option>
-    <option value="7" selected>7 días</option>
+    <option value="7">7 días</option>
     <option value="30">30 días</option>
+    <option value="90" selected>90 días</option>
     <option value="365">1 año</option>
   </select>
   <canvas id="grafCanvas"></canvas>
@@ -48,7 +51,34 @@ async function precios(){
     eth.textContent=`$${d.ethereum.usd.toLocaleString()}`;
     sol.textContent=`$${d.solana.usd.toLocaleString()}`;
     hora.textContent="Última actualización: "+new Date().toLocaleTimeString();
+    await recomendacion(); // actualizar recomendación cada vez que se obtienen precios
   }catch(e){hora.textContent="Error al obtener precios";}
+}
+
+async function recomendacion(){
+  const monedas=["bitcoin","ethereum","solana"];
+  const dias=90;
+  const datos=[];
+
+  for(let coin of monedas){
+    const r=await fetch(`https://api.coingecko.com/api/v3/coins/${coin}/market_chart?vs_currency=usd&days=${dias}`);
+    const d=await r.json();
+    const precios=d.prices.map(p=>p[1]);
+    const inicial=precios[0], final=precios[precios.length-1];
+    const rendimiento=(final-inicial)/inicial;
+    const media=precios.reduce((a,b)=>a+b)/precios.length;
+    const varianza=precios.reduce((a,b)=>a+(b-media)**2,0)/precios.length;
+    const volatilidad=Math.sqrt(varianza)/media;
+    datos.push({coin,rendimiento,volatilidad});
+  }
+
+  const puntajes=datos.map(x=>x.rendimiento/x.volatilidad);
+  const total=puntajes.reduce((a,b)=>a+b);
+  const porcentajes=puntajes.map(p=>100*p/total);
+
+  document.getElementById("btc-reco").textContent=`(${porcentajes[0].toFixed(1)}%)`;
+  document.getElementById("eth-reco").textContent=`(${porcentajes[1].toFixed(1)}%)`;
+  document.getElementById("sol-reco").textContent=`(${porcentajes[2].toFixed(1)}%)`;
 }
 
 async function mostrarGrafico(moneda,nombre){
@@ -62,13 +92,10 @@ async function mostrarGrafico(moneda,nombre){
   window.graf=new Chart(grafCanvas.getContext("2d"),{
     type:"line",
     data:{datasets:[{label:"Precio USD",data:puntos,borderColor:"#ffcc00",backgroundColor:"rgba(255,204,0,0.2)",fill:true,tension:.3}]},
-    options:{
-      scales:{
-        x:{type:"time",time:{unit:dias>30?"month":"day"},ticks:{color:"#fff"},grid:{color:"#333"}},
-        y:{ticks:{color:"#fff"},grid:{color:"#333"}}
-      },
-      plugins:{legend:{labels:{color:"#fff"}}}
-    }
+    options:{scales:{
+      x:{type:"time",time:{unit:dias>30?"month":"day"},ticks:{color:"#fff"},grid:{color:"#333"}},
+      y:{ticks:{color:"#fff"},grid:{color:"#333"}}},
+      plugins:{legend:{labels:{color:"#fff"}}}}
   });
 }
 
