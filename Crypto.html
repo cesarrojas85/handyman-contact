@@ -68,7 +68,7 @@
     .sub-summary { margin-top: 16px; border-top: 1px solid #333; padding-top: 10px; }
     .sub-summary table td, .sub-summary table th { font-size: .9rem; }
     #pieCanvas { max-height: 240px; }
-    input[type="number"].edit-price { width: 100%; background: #222; border: 1px solid #333; border-radius: 6px; color: #fff; padding: 4px 6px; text-align: right; }
+    input[type="number"].edit-price, input[type="number"].edit-commission { width: 100%; background: #222; border: 1px solid #333; border-radius: 6px; color: #fff; padding: 4px 6px; text-align: right; }
     .spinner { display: none; border: 4px solid var(--muted); border-top: 4px solid var(--gold); border-radius: 50%; width: 20px; height: 20px; animation: spin 1s linear infinite; }
     .spinner.active { display: inline-block; }
     @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
@@ -181,13 +181,17 @@
             <label class="small muted" for="txUsd">Monto USD</label>
             <input id="txUsd" class="input" type="number" step="0.01" placeholder="Ej. 250.00" aria-label="Monto en USD" />
           </div>
+          <div>
+            <label class="small muted" for="txCommission">Comisión USD</label>
+            <input id="txCommission" class="input" type="number" step="0.01" placeholder="Ej. 2.50" aria-label="Comisión en USD" />
+          </div>
           <div class="row" style="align-items:end;justify-content:flex-end">
             <button id="btnAddTx" class="btn" aria-label="Agregar transacción">➕ Agregar</button>
           </div>
         </div>
         <div id="txError" class="error" role="alert"></div>
         <table class="table-mini" id="txTable">
-          <thead><tr><th>Fecha</th><th>Moneda</th><th>Monto USD</th><th>Precio Compra</th><th>Acción</th></tr></thead>
+          <thead><tr><th>Fecha</th><th>Moneda</th><th>Monto USD</th><th>Precio Compra</th><th>Comisión USD</th><th>Acción</th></tr></thead>
           <tbody id="txTbody"></tbody>
         </table>
       </div>
@@ -367,14 +371,14 @@
     function renderTx() {
       const tb = $('#txTbody');
       if (!STATE.txs.length) {
-        tb.innerHTML = '<tr><td colspan="5" class="muted small" style="text-align:center;">Sin compras registradas</td></tr>';
+        tb.innerHTML = '<tr><td colspan="6" class="muted small" style="text-align:center;">Sin compras registradas</td></tr>';
         updateTotals();
         return;
       }
       const fragment = document.createDocumentFragment();
       STATE.txs.forEach((t, i) => {
         const tr = document.createElement('tr');
-        tr.innerHTML = `<td>${t.date}</td><td>${t.coin}</td><td>${fmt(t.usd, STATE.currency)}</td><td><input type="number" step="0.01" class="edit-price" value="${t.buyPrice || 0}" data-i="${i}" aria-label="Precio de compra"></td><td><button class="btn small" data-i="${i}" aria-label="Eliminar transacción">🗑</button></td>`;
+        tr.innerHTML = `<td>${t.date}</td><td>${t.coin}</td><td>${fmt(t.usd, STATE.currency)}</td><td><input type="number" step="0.01" class="edit-price" value="${t.buyPrice || 0}" data-i="${i}" aria-label="Precio de compra"></td><td><input type="number" step="0.01" class="edit-commission" value="${t.commission || 0}" data-i="${i}" aria-label="Comisión"></td><td><button class="btn small" data-i="${i}" aria-label="Eliminar transacción">🗑</button></td>`;
         fragment.appendChild(tr);
       });
       tb.innerHTML = '';
@@ -383,6 +387,14 @@
         inp.addEventListener('change', e => {
           const i = e.target.dataset.i;
           STATE.txs[i].buyPrice = parseFloat(e.target.value) || 0;
+          saveLS();
+          updateTotals();
+        });
+      });
+      tb.querySelectorAll('.edit-commission').forEach(inp => {
+        inp.addEventListener('change', e => {
+          const i = e.target.dataset.i;
+          STATE.txs[i].commission = parseFloat(e.target.value) || 0;
           saveLS();
           updateTotals();
         });
@@ -409,17 +421,19 @@
         if (STATE.pie) STATE.pie.destroy();
         return;
       }
-      let invested = 0, current = 0;
-      const coinData = { BTC: { inv: 0, cur: 0 }, ETH: { inv: 0, cur: 0 }, SOL: { inv: 0, cur: 0 } };
+      let invested = 0, current = 0, totalCommission = 0;
+      const coinData = { BTC: { inv: 0, cur: 0, com: 0 }, ETH: { inv: 0, cur: 0, com: 0 }, SOL: { inv: 0, cur: 0, com: 0 } };
       STATE.txs.forEach(t => {
         const now = STATE.prices[t.coin];
         invested += t.usd;
+        totalCommission += t.commission || 0;
         const value = t.buyPrice ? ((now * t.usd) / t.buyPrice) : 0;
         current += value;
         coinData[t.coin].inv += t.usd;
+        coinData[t.coin].com += t.commission || 0;
         coinData[t.coin].cur += value;
       });
-      const pnl = current - invested;
+      const pnl = current - invested - totalCommission;
       const pnlPct = invested ? (pnl / invested) * 100 : 0;
       sumInvEl.textContent = fmt(invested, STATE.currency);
       sumCurEl.textContent = fmt(current, STATE.currency);
@@ -429,7 +443,7 @@
       Object.keys(coinData).forEach(sym => {
         const d = coinData[sym];
         if (!d.inv) return;
-        const pl = d.cur - d.inv;
+        const pl = d.cur - d.inv - d.com;
         const tr = document.createElement('tr');
         tr.innerHTML = `<td>${sym}</td><td>${fmt(d.inv, STATE.currency)}</td><td>${fmt(d.cur, STATE.currency)}</td><td style="color:${pl >= 0 ? 'var(--ok)' : 'var(--bad)'};">${pl >= 0 ? '+' : ''}${fmt(pl, STATE.currency)}</td>`;
         coinSummary.appendChild(tr);
@@ -487,16 +501,18 @@
       const coin = $('#txCoin').value;
       const date = $('#txDate').value;
       const usd = parseFloat($('#txUsd').value);
-      if (!coin || !date || !usd || usd <= 0 || !validateDate(date)) {
-        $('#txError').textContent = 'Por favor, completa todos los campos correctamente (fecha no futura, monto positivo).';
+      const commission = parseFloat($('#txCommission').value) || 0;
+      if (!coin || !date || !usd || usd <= 0 || commission < 0 || !validateDate(date)) {
+        $('#txError').textContent = 'Por favor, completa todos los campos correctamente (fecha no futura, monto positivo, comisión no negativa).';
         return;
       }
       $('#txError').textContent = '';
       const buyPrice = STATE.prices[coin];
-      STATE.txs.unshift({ coin, date, usd, buyPrice });
+      STATE.txs.unshift({ coin, date, usd, buyPrice, commission });
       saveLS();
       renderTx();
       $('#txUsd').value = '';
+      $('#txCommission').value = '';
     };
     $('#btnSavePayPal').onclick = () => {
       const v = parseFloat($('#paypalBalance').value) || 0;
