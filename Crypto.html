@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Crypto Dashboard v5 — Distribución Inteligente</title>
+<title>Crypto Dashboard v7 — Precio editable</title>
 
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet" />
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -18,14 +18,14 @@
 *{box-sizing:border-box}
 body{margin:0;font-family:'Poppins',sans-serif;background:var(--bg);color:#fff;}
 .nav{display:flex;align-items:center;justify-content:space-between;padding:14px 18px;background:#0f0f0f;border-bottom:1px solid #222;}
-.brand{color:var(--gold);font-weight:600;letter-spacing:.5px}
+.brand{color:var(--gold);font-weight:600;}
 .meta{display:flex;align-items:center;gap:10px;color:var(--muted)}
 .btn{background:transparent;border:1px solid var(--gold);color:var(--gold);padding:6px 10px;border-radius:8px;cursor:pointer}
 .btn:hover{background:rgba(255,204,0,.08)}
 .wrap{display:grid;grid-template-columns:1.2fr .8fr;gap:20px;padding:20px;max-width:1200px;margin:0 auto;align-items:start;}
 @media(max-width:980px){.wrap{grid-template-columns:1fr}}
 .card{background:var(--panel);border-radius:12px;box-shadow:0 0 14px rgba(255,204,0,.08);overflow:hidden;}
-.card h2{margin:0;padding:16px;border-bottom:1px solid #222;color:var(--gold);font-size:1.05rem;letter-spacing:.3px}
+.card h2{margin:0;padding:16px;border-bottom:1px solid #222;color:var(--gold);}
 .card .body{padding:16px}
 table{width:100%;border-collapse:collapse;}
 th,td{padding:10px 14px;text-align:left}
@@ -43,30 +43,29 @@ tr:hover{background:#2a2a2a}
 #portfolioCard{max-height:calc(380px + 270px);overflow-y:auto;scrollbar-width:thin;scrollbar-color:var(--gold) #222;}
 #portfolioCard::-webkit-scrollbar{width:8px}
 #portfolioCard::-webkit-scrollbar-thumb{background-color:var(--gold);border-radius:10px}
-.grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
-@media(max-width:720px){.grid2{grid-template-columns:1fr}}
 .input,.select{width:100%;background:#222;color:#fff;border:1px solid #333;border-radius:8px;padding:9px 10px}
-.tally{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:8px}
-.pill{background:#151515;padding:10px;border-radius:10px;border:1px solid #232323}
-.pill .lab{color:var(--muted2);font-size:.85rem}
-.pill .val{font-weight:700;margin-top:4px}
 .table-mini{width:100%;border-collapse:collapse;margin-top:10px}
 .table-mini th{background:#232323;color:#ddd}
-.table-mini td,.table-mini th{padding:8px 10px;font-size:.92rem}
-.row{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.table-mini td,.table-mini th{padding:8px 10px;font-size:.9rem}
+input[type="number"].edit-price {
+  width: 100%;
+  background: #222;
+  border: 1px solid #333;
+  border-radius: 6px;
+  color: #fff;
+  padding: 4px 6px;
+  text-align: right;
+}
 .small{font-size:.86rem}
 .muted{color:var(--muted2)}
-.group-header{background:#222;color:var(--gold);font-weight:600;text-align:center;padding:6px 0;border-top:1px solid #333}
-.sub-summary{margin-top:16px;border-top:1px solid #333;padding-top:10px}
-.sub-summary table td, .sub-summary table th{font-size:.9rem;}
 #pieCanvas{max-height:240px}
+.group-header{background:#222;color:var(--gold);font-weight:600;text-align:center;padding:6px 0;border-top:1px solid #333}
 </style>
 </head>
 <body>
 
-<!-- NAV -->
 <div class="nav">
-  <div class="brand">Crypto Dashboard v5</div>
+  <div class="brand">Crypto Dashboard v7</div>
   <div class="meta">
     <span id="lastUpdate" class="small">—</span>
     <button id="btnRefresh" class="btn">🔄 Actualizar</button>
@@ -74,18 +73,17 @@ tr:hover{background:#2a2a2a}
 </div>
 
 <div class="wrap">
-  <!-- IZQUIERDA: PRECIOS -->
   <div class="card" id="pricesCard">
-    <h2>Precios, Recomendación (90d) y Tendencia</h2>
+    <h2>Precios y Tendencias</h2>
     <div class="body">
       <table id="tabla">
         <thead>
-          <tr><th>Criptomoneda</th><th>Precio (USD)</th><th>% Recomendado</th><th>Tendencia</th></tr>
+          <tr><th>Criptomoneda</th><th>Precio USD</th><th>% Recomendado</th><th>Tendencia</th></tr>
         </thead>
         <tbody>
-          <tr data-coin="bitcoin"><td class="coin">Bitcoin (BTC)</td><td id="btc" class="price">—</td><td id="btc-reco" class="reco">—</td><td id="btc-trend" class="trend">—</td></tr>
-          <tr data-coin="ethereum"><td class="coin">Ethereum (ETH)</td><td id="eth" class="price">—</td><td id="eth-reco" class="reco">—</td><td id="eth-trend" class="trend">—</td></tr>
-          <tr data-coin="solana"><td class="coin">Solana (SOL)</td><td id="sol" class="price">—</td><td id="sol-reco" class="reco">—</td><td id="sol-trend" class="trend">—</td></tr>
+          <tr data-coin="bitcoin"><td class="coin">Bitcoin (BTC)</td><td id="btc">—</td><td id="btc-reco">—</td><td id="btc-trend">—</td></tr>
+          <tr data-coin="ethereum"><td class="coin">Ethereum (ETH)</td><td id="eth">—</td><td id="eth-reco">—</td><td id="eth-trend">—</td></tr>
+          <tr data-coin="solana"><td class="coin">Solana (SOL)</td><td id="sol">—</td><td id="sol-reco">—</td><td id="sol-trend">—</td></tr>
         </tbody>
       </table>
       <div class="last" id="hora">Última actualización: —</div>
@@ -93,204 +91,109 @@ tr:hover{background:#2a2a2a}
     <div id="chartPanel">
       <h2 id="titulo">Histórico</h2>
       <div class="body">
-        <div class="row">
-          <div class="muted small">Rango</div>
-          <select id="rango">
-            <option value="7">7 días</option>
-            <option value="30">30 días</option>
-            <option value="90" selected>90 días</option>
-            <option value="365">1 año</option>
-          </select>
-        </div>
+        <select id="rango">
+          <option value="7">7 días</option>
+          <option value="30">30 días</option>
+          <option value="90" selected>90 días</option>
+          <option value="365">1 año</option>
+        </select>
         <canvas id="grafCanvas"></canvas>
       </div>
     </div>
   </div>
 
-  <!-- DERECHA: PORTAFOLIO -->
   <div class="card" id="portfolioCard">
     <h2>
-      Portafolio (compras manuales + saldo PayPal)
+      Portafolio
       <span style="float:right; font-size:0.8rem; color:var(--muted);">
-        Mostrar distribución por:
-        <label style="cursor:pointer;">
-          <input type="radio" name="pieMode" value="inv" checked> Invertido
-        </label>
-        <label style="cursor:pointer; margin-left:8px;">
-          <input type="radio" name="pieMode" value="cur"> Valor actual
-        </label>
+        Mostrar por:
+        <label><input type="radio" name="pieMode" value="inv" checked> Invertido</label>
+        <label style="margin-left:8px;"><input type="radio" name="pieMode" value="cur"> Valor actual</label>
       </span>
     </h2>
     <div class="body">
-      <div class="grid2">
-        <div>
-          <div class="muted small">Saldo PayPal</div>
-          <input id="paypalBalance" class="input" type="number" step="0.01" placeholder="Ej. 1200.00" />
-        </div>
-        <div class="row" style="justify-content:flex-end;gap:10px">
-          <button id="btnSavePayPal" class="btn">💾 Guardar</button>
-          <button id="btnClearAll" class="btn" title="Borrar todo">🗑️ Limpiar</button>
-        </div>
-      </div>
-
-      <div class="tally">
-        <div class="pill"><div class="lab">Invertido</div><div class="val" id="sumInvested">$0.00</div></div>
-        <div class="pill"><div class="lab">Actual</div><div class="val" id="sumCurrent">$0.00</div></div>
-        <div class="pill"><div class="lab">P/L</div><div class="val" id="sumPnL">$0.00</div></div>
-      </div>
-
-      <div class="grid2" style="margin-top:14px">
-        <div>
-          <label class="small muted">Moneda</label>
-          <select id="txCoin" class="select">
-            <option value="BTC">BTC</option>
-            <option value="ETH">ETH</option>
-            <option value="SOL">SOL</option>
-          </select>
-        </div>
-        <div>
-          <label class="small muted">Fecha</label>
-          <input id="txDate" class="input" type="date" />
-        </div>
-        <div>
-          <label class="small muted">Monto USD</label>
-          <input id="txUsd" class="input" type="number" step="0.01" placeholder="Ej. 250.00" />
-        </div>
-        <div class="row" style="align-items:end;justify-content:flex-end">
-          <button id="btnAddTx" class="btn">➕ Agregar</button>
-        </div>
-      </div>
-
+      <canvas id="pieCanvas"></canvas>
+      <table class="table-mini">
+        <thead><tr><th>Moneda</th><th>Invertido</th><th>Actual</th><th>P/L</th></tr></thead>
+        <tbody id="coinSummary"></tbody>
+      </table>
+      <hr>
       <table class="table-mini" id="txTable">
         <thead><tr><th>Fecha</th><th>Moneda</th><th>Monto USD</th><th>Precio Compra</th><th></th></tr></thead>
         <tbody id="txTbody"></tbody>
       </table>
-
-      <div class="sub-summary">
-        <h3 class="small muted" style="margin-bottom:8px;">Resumen por moneda</h3>
-        <table class="table-mini">
-          <thead><tr><th>Moneda</th><th>Invertido</th><th>Actual</th><th>P/L</th></tr></thead>
-          <tbody id="coinSummary"></tbody>
-        </table>
-
-        <!-- PIE CHART -->
-        <div style="margin-top:20px">
-          <h3 class="small muted" id="pieTitle" style="margin-bottom:8px;">Distribución del Portafolio (por inversión)</h3>
-          <canvas id="pieCanvas"></canvas>
-        </div>
-      </div>
     </div>
   </div>
 </div>
 
 <script>
-const $ = s => document.querySelector(s);
-const fmt = n => isFinite(n)?n.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2}):'—';
-const COINS = [
-  {id:'bitcoin',sym:'BTC',priceEl:'#btc',recoEl:'#btc-reco',trendEl:'#btc-trend'},
-  {id:'ethereum',sym:'ETH',priceEl:'#eth',recoEl:'#eth-reco',trendEl:'#eth-trend'},
-  {id:'solana',sym:'SOL',priceEl:'#sol',recoEl:'#sol-reco',trendEl:'#sol-trend'}
-];
-let STATE={prices:{},chart:null,pie:null,txs:[],paypal:0,currentCoinId:null,currentCoinName:null};
+const $=s=>document.querySelector(s);
+const fmt=n=>isFinite(n)?n.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2}):'—';
+let STATE={prices:{},txs:[],pie:null};
+const COINS=[{id:'bitcoin',sym:'BTC',el:'#btc'},{id:'ethereum',sym:'ETH',el:'#eth'},{id:'solana',sym:'SOL',el:'#sol'}];
 
 async function fetchPrices(){
   const ids=COINS.map(c=>c.id).join(',');
-  const res=await fetch(`https://api.coingecko.com/api/v3/simple/price?ids=${ids}&vs_currencies=usd`);
-  const d=await res.json();
+  const r=await fetch(`https://api.coingecko.com/api/v3/simple/price?ids=${ids}&vs_currencies=usd`);
+  const d=await r.json();
   STATE.prices={BTC:d.bitcoin.usd,ETH:d.ethereum.usd,SOL:d.solana.usd};
-  COINS.forEach(c=>$(c.priceEl).textContent=`$${fmt(STATE.prices[c.sym])}`);
-  const ts='Última actualización: '+new Date().toLocaleTimeString();
-  $('#hora').textContent=ts;$('#lastUpdate').textContent=ts;
+  COINS.forEach(c=>$(c.el).textContent=`$${fmt(STATE.prices[c.sym])}`);
+  $('#hora').textContent='Actualizado: '+new Date().toLocaleTimeString();
 }
-
-async function fetchHistory(id,days){
-  const r=await fetch(`https://api.coingecko.com/api/v3/coins/${id}/market_chart?vs_currency=usd&days=${days}`);
-  return r.json();
-}
-
-async function analyze90d(){
-  const out=await Promise.all(COINS.map(c=>fetchHistory(c.id,90)));
-  const stats=out.map(d=>{
-    const p=d.prices.map(x=>x[1]);
-    const start=p[0],end=p[p.length-1];
-    const ret=(end-start)/start;
-    const m=p.reduce((a,b)=>a+b,0)/p.length;
-    const v=p.reduce((a,b)=>a+(b-m)**2,0)/p.length;
-    const vol=Math.sqrt(v)/m;
-    const sma7=p.slice(-7).reduce((a,b)=>a+b,0)/7;
-    const sma30=p.slice(-30).reduce((a,b)=>a+b,0)/30;
-    let trend='🟡 Neutra',cls='mid';
-    if(sma7>sma30*1.02){trend='🟢 Alcista';cls='ok';}
-    else if(sma7<sma30*0.98){trend='🔴 Bajista';cls='bad';}
-    return{ret,vol,trend,cls};
-  });
-  const scores=stats.map(s=>s.ret/s.vol);
-  const total=scores.reduce((a,b)=>a+b,0);
-  const pct=scores.map(s=>s/total*100);
-  COINS.forEach((c,i)=>{$(c.recoEl).textContent=`${pct[i].toFixed(1)}%`;const el=$(c.trendEl);el.textContent=stats[i].trend;el.className=`trend ${stats[i].cls}`;});
-}
-
-async function showChart(id,name){
-  $('#titulo').textContent=`Histórico de ${name}`;
-  const days=$('#rango').value;
-  const d=await fetchHistory(id,days);
-  const pts=d.prices.map(p=>({x:p[0],y:p[1]}));
-  if(STATE.chart)STATE.chart.destroy();
-  STATE.chart=new Chart($('#grafCanvas').getContext('2d'),{type:'line',data:{datasets:[{label:'Precio USD',data:pts,borderColor:'#ffcc00',backgroundColor:'rgba(255,204,0,.18)',fill:true,tension:.3,pointRadius:0}]},options:{scales:{x:{type:'time',time:{unit:days>90?'month':(days>30?'week':'day')},ticks:{color:'#fff'},grid:{color:'#333'}},y:{ticks:{color:'#fff'},grid:{color:'#333'}}},plugins:{legend:{labels:{color:'#fff'}}}}});
-}
-
-function loadLS(){
-  try{STATE.txs=JSON.parse(localStorage.getItem('crypto_v5_txs')||'[]');STATE.paypal=parseFloat(localStorage.getItem('crypto_v5_paypal')||'0')||0;}
-  catch{STATE.txs=[];STATE.paypal=0;}
-  $('#paypalBalance').value=STATE.paypal||'';renderTx();
-}
-function saveLS(){localStorage.setItem('crypto_v5_txs',JSON.stringify(STATE.txs));}
-
+function saveLS(){localStorage.setItem('crypto_v7_txs',JSON.stringify(STATE.txs));}
+function loadLS(){STATE.txs=JSON.parse(localStorage.getItem('crypto_v7_txs')||'[]');renderTx();}
 function renderTx(){
   const tb=$('#txTbody');tb.innerHTML='';
-  if(STATE.txs.length===0){tb.innerHTML='<tr><td colspan="5" class="muted small" style="text-align:center;">Sin compras registradas</td></tr>';updateTotals();return;}
-  const grouped={};STATE.txs.forEach(t=>{if(!grouped[t.date])grouped[t.date]=[];grouped[t.date].push(t);});
-  const dates=Object.keys(grouped).sort((a,b)=>new Date(b)-new Date(a));
-  dates.forEach(date=>{
-    const trHead=document.createElement('tr');
-    trHead.innerHTML=`<td colspan="5" class="group-header">${new Date(date).toLocaleDateString('es-MX',{weekday:'long',year:'numeric',month:'long',day:'numeric'})}</td>`;
-    tb.appendChild(trHead);
-    grouped[date].forEach(t=>{
-      const tr=document.createElement('tr');
-      tr.innerHTML=`<td>${t.date}</td><td>${t.coin}</td><td>$${fmt(t.usd)}</td><td>$${fmt(t.buyPrice)}</td><td><button class="btn small" data-date="${t.date}" data-coin="${t.coin}" data-usd="${t.usd}">Quitar</button></td>`;
-      tb.appendChild(tr);
+  STATE.txs.forEach((t,i)=>{
+    const tr=document.createElement('tr');
+    tr.innerHTML=`
+      <td>${t.date}</td>
+      <td>${t.coin}</td>
+      <td>$${fmt(t.usd)}</td>
+      <td><input type="number" step="0.01" class="edit-price" value="${t.buyPrice||0}" data-i="${i}"></td>
+      <td><button class="btn small" data-i="${i}">🗑</button></td>`;
+    tb.appendChild(tr);
+  });
+  tb.querySelectorAll('.edit-price').forEach(inp=>{
+    inp.addEventListener('change',e=>{
+      const i=e.target.dataset.i;
+      STATE.txs[i].buyPrice=parseFloat(e.target.value);
+      saveLS();updateTotals();
     });
   });
-  tb.querySelectorAll('button').forEach(b=>{b.onclick=()=>{STATE.txs=STATE.txs.filter(x=>!(x.date===b.dataset.date&&x.coin===b.dataset.coin&&x.usd==b.dataset.usd));saveLS();renderTx();};});
+  tb.querySelectorAll('button').forEach(b=>{
+    b.onclick=()=>{STATE.txs.splice(b.dataset.i,1);saveLS();renderTx();updateTotals();}
+  });
   updateTotals();
 }
-
 function updateTotals(){
-  const pieMode=document.querySelector('input[name="pieMode"]:checked').value;
-  const sumInvEl=$('#sumInvested'),sumCurEl=$('#sumCurrent'),sumPnLEl=$('#sumPnL'),coinSummary=$('#coinSummary');
-  if(!STATE.txs.length){sumInvEl.textContent='$0.00';sumCurEl.textContent='$0.00';sumPnLEl.textContent='$0.00';coinSummary.innerHTML='';if(STATE.pie)STATE.pie.destroy();return;}
-  let invested=0,current=0;const coinData={BTC:{inv:0,cur:0},ETH:{inv:0,cur:0},SOL:{inv:0,cur:0}};
-  STATE.txs.forEach(t=>{const now=STATE.prices[t.coin];invested+=t.usd;const value=(now*t.usd)/t.buyPrice;current+=value;coinData[t.coin].inv+=t.usd;coinData[t.coin].cur+=value;});
-  const pnl=current-invested;const pnlPct=(pnl/invested)*100;
-  sumInvEl.textContent=`$${fmt(invested)}`;sumCurEl.textContent=`$${fmt(current)}`;sumPnLEl.textContent=`${pnl>=0?'+':''}$${fmt(pnl)} (${pnlPct.toFixed(1)}%)`;sumPnLEl.style.color=pnl>=0?'var(--ok)':'var(--bad)';
-  coinSummary.innerHTML='';
-  Object.keys(coinData).forEach(sym=>{const d=coinData[sym];if(!d.inv)return;const pl=d.cur-d.inv;const tr=document.createElement('tr');tr.innerHTML=`<td>${sym}</td><td>$${fmt(d.inv)}</td><td>$${fmt(d.cur)}</td><td style="color:${pl>=0?'var(--ok)':'var(--bad)'};">${pl>=0?'+':''}$${fmt(pl)}</td>`;coinSummary.appendChild(tr);});
+  let inv=0,cur=0;
+  const coins={BTC:{inv:0,cur:0},ETH:{inv:0,cur:0},SOL:{inv:0,cur:0}};
+  STATE.txs.forEach(t=>{
+    const now=STATE.prices[t.coin];
+    inv+=t.usd;
+    const val=(now*t.usd)/(t.buyPrice||now);
+    cur+=val;
+    coins[t.coin].inv+=t.usd;
+    coins[t.coin].cur+=val;
+  });
+  const tbody=$('#coinSummary');tbody.innerHTML='';
+  Object.keys(coins).forEach(c=>{
+    if(!coins[c].inv)return;
+    const p=coins[c].cur-coins[c].inv;
+    tbody.innerHTML+=`<tr><td>${c}</td><td>$${fmt(coins[c].inv)}</td><td>$${fmt(coins[c].cur)}</td><td style="color:${p>=0?'var(--ok)':'var(--bad)'};">${p>=0?'+':''}$${fmt(p)}</td></tr>`;
+  });
+  const mode=document.querySelector('input[name="pieMode"]:checked').value;
   const labels=['BTC','ETH','SOL'];
-  const dataInv=labels.map(s=>pieMode==='cur'?coinData[s].cur:coinData[s].inv);
-  $('#pieTitle').textContent=`Distribución del Portafolio (${pieMode==='cur'?'por valor actual':'por inversión'})`;
+  const data=labels.map(c=>mode==='cur'?coins[c].cur:coins[c].inv);
   if(STATE.pie)STATE.pie.destroy();
-  STATE.pie=new Chart($('#pieCanvas').getContext('2d'),{type:'pie',data:{labels,datasets:[{data:dataInv,backgroundColor:['#f7931a','#627eea','#14f195']}]},options:{plugins:{legend:{labels:{color:'#fff'}}}}});
+  STATE.pie=new Chart($('#pieCanvas'),{type:'pie',data:{labels,datasets:[{data,backgroundColor:['#f7931a','#627eea','#14f195']}]},options:{plugins:{legend:{labels:{color:'#fff'}}}}});
 }
 
-/* Eventos */
-document.querySelectorAll('input[name="pieMode"]').forEach(el=>{el.addEventListener('change',()=>updateTotals());});
-$('#tabla').addEventListener('click',e=>{const r=e.target.closest('tr[data-coin]');if(!r)return;const c=COINS.find(x=>x.id===r.dataset.coin);STATE.currentCoinId=c.id;STATE.currentCoinName=c.sym;showChart(c.id,c.sym);});
-$('#rango').addEventListener('change',()=>{if(STATE.currentCoinId)showChart(STATE.currentCoinId,STATE.currentCoinName);});
-$('#btnAddTx').onclick=()=>{const coin=$('#txCoin').value,date=$('#txDate').value,usd=parseFloat($('#txUsd').value);if(!coin||!date||!usd||usd<=0)return alert('Completa los datos.');const buyPrice=STATE.prices[coin];STATE.txs.unshift({coin,date,usd,buyPrice});saveLS();renderTx();$('#txUsd').value='';};
-$('#btnSavePayPal').onclick=()=>{const v=parseFloat($('#paypalBalance').value)||0;STATE.paypal=v;localStorage.setItem('crypto_v5_paypal',v);alert('Saldo PayPal guardado.');};
-$('#btnClearAll').onclick=()=>{if(!confirm('¿Borrar todo?'))return;STATE.txs=[];STATE.paypal=0;localStorage.clear();renderTx();$('#paypalBalance').value='';};
-$('#btnRefresh').onclick=async()=>{await fetchPrices();await analyze90d();updateTotals();};
-(async function init(){loadLS();await fetchPrices();await analyze90d();updateTotals();setInterval(async()=>{await fetchPrices();updateTotals();},300000);})();
+(async()=>{
+  loadLS();await fetchPrices();updateTotals();
+  setInterval(fetchPrices,300000);
+})();
 </script>
 </body>
 </html>
