@@ -3,7 +3,8 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Precios Cripto en Vivo (CoinGecko)</title>
+  <title>Precios Cripto en Vivo (USD)</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -14,10 +15,12 @@
       flex-direction: column;
       align-items: center;
     }
+
     h1 {
       color: #ffcc00;
       margin-bottom: 30px;
     }
+
     table {
       width: 90%;
       max-width: 700px;
@@ -26,109 +29,202 @@
       box-shadow: 0 0 15px rgba(255, 255, 255, 0.1);
       border-radius: 10px;
       overflow: hidden;
+      cursor: pointer;
     }
+
     th, td {
       padding: 15px 20px;
       text-align: left;
     }
+
     th {
       background-color: #ffcc00;
       color: #111;
       font-size: 1.1em;
       text-transform: uppercase;
     }
+
     tr:nth-child(even) { background-color: #222; }
     tr:nth-child(odd) { background-color: #181818; }
+    tr:hover { background-color: #333; }
+
     .coin {
       font-weight: bold;
       color: #ffcc00;
       font-size: 1.1em;
-      width: 40%;
     }
-    .price { line-height: 1.6; }
+
+    .price { font-size: 1.2em; }
+
     .updated {
       margin-top: 25px;
       font-size: 0.9em;
       color: #aaa;
     }
+
+    #chart-container {
+      width: 90%;
+      max-width: 700px;
+      margin-top: 40px;
+      background-color: #1b1b1b;
+      border-radius: 10px;
+      padding: 20px;
+      display: none;
+    }
+
+    #cryptoChart {
+      width: 100%;
+      height: 400px;
+    }
+
+    select {
+      background-color: #222;
+      color: #ffcc00;
+      border: 1px solid #ffcc00;
+      border-radius: 5px;
+      padding: 5px 10px;
+      font-size: 1em;
+      margin-top: 10px;
+      cursor: pointer;
+    }
+
+    option {
+      background-color: #111;
+    }
   </style>
 </head>
 <body>
-  <h1>Precios Cripto en Vivo</h1>
+  <h1>Precios Cripto en Vivo (USD)</h1>
 
-  <table>
+  <table id="crypto-table">
     <thead>
       <tr>
         <th>Criptomoneda</th>
-        <th>Precios (USD / MXN / EUR / CNY)</th>
+        <th>Precio USD</th>
       </tr>
     </thead>
     <tbody>
-      <tr>
+      <tr data-coin="bitcoin">
         <td class="coin">Bitcoin (BTC)</td>
-        <td class="price" id="btc-prices">Cargando…</td>
+        <td class="price" id="btc-price">Cargando…</td>
       </tr>
-      <tr>
+      <tr data-coin="ethereum">
         <td class="coin">Ethereum (ETH)</td>
-        <td class="price" id="eth-prices">Cargando…</td>
+        <td class="price" id="eth-price">Cargando…</td>
       </tr>
-      <tr>
+      <tr data-coin="solana">
         <td class="coin">Solana (SOL)</td>
-        <td class="price" id="sol-prices">Cargando…</td>
+        <td class="price" id="sol-price">Cargando…</td>
       </tr>
     </tbody>
   </table>
 
   <div class="updated" id="last-updated"></div>
 
+  <div id="chart-container">
+    <h2 id="chart-title"></h2>
+    <label for="rangeSelect">Rango:</label>
+    <select id="rangeSelect">
+      <option value="1">1 día</option>
+      <option value="7" selected>7 días</option>
+      <option value="30">30 días</option>
+      <option value="365">1 año</option>
+    </select>
+    <canvas id="cryptoChart"></canvas>
+  </div>
+
   <script>
     async function fetchPrices() {
       try {
         const response = await fetch(
-          'https://api.coingecko.com/api/v3/simple/price?ids=bitcoin,ethereum,solana&vs_currencies=usd,mxn,eur,cny',
-          { cache: 'no-store' }
+          'https://api.coingecko.com/api/v3/simple/price?ids=bitcoin,ethereum,solana&vs_currencies=usd'
         );
-        if (!response.ok) throw new Error('HTTP ' + response.status);
         const data = await response.json();
 
-        const btc = data.bitcoin || {};
-        const eth = data.ethereum || {};
-        const sol = data.solana || {};
-
-        const n = (v) => (typeof v === 'number' ? v.toLocaleString() : '—');
-
-        document.getElementById('btc-prices').innerHTML = `
-          🇺🇸 USD: $${n(btc.usd)}<br>
-          🇲🇽 MXN: $${n(btc.mxn)}<br>
-          🇪🇺 EUR: €${n(btc.eur)}<br>
-          🇨🇳 CNY: ¥${n(btc.cny)}
-        `;
-        document.getElementById('eth-prices').innerHTML = `
-          🇺🇸 USD: $${n(eth.usd)}<br>
-          🇲🇽 MXN: $${n(eth.mxn)}<br>
-          🇪🇺 EUR: €${n(eth.eur)}<br>
-          🇨🇳 CNY: ¥${n(eth.cny)}
-        `;
-        document.getElementById('sol-prices').innerHTML = `
-          🇺🇸 USD: $${n(sol.usd)}<br>
-          🇲🇽 MXN: $${n(sol.mxn)}<br>
-          🇪🇺 EUR: €${n(sol.eur)}<br>
-          🇨🇳 CNY: ¥${n(sol.cny)}
-        `;
+        document.getElementById('btc-price').textContent = `$${data.bitcoin.usd.toLocaleString()}`;
+        document.getElementById('eth-price').textContent = `$${data.ethereum.usd.toLocaleString()}`;
+        document.getElementById('sol-price').textContent = `$${data.solana.usd.toLocaleString()}`;
 
         document.getElementById('last-updated').textContent =
           'Última actualización: ' + new Date().toLocaleTimeString();
       } catch (error) {
         console.error('Error al obtener precios:', error);
-        const msg = String(error).includes('429')
-          ? 'CoinGecko limitó las solicitudes (429). Intenta nuevamente en unos minutos.'
-          : 'No se pudieron obtener los precios.';
-        document.getElementById('last-updated').textContent = msg;
+        document.getElementById('last-updated').textContent =
+          'No se pudieron obtener los precios.';
       }
     }
 
+    async function showChart(coinId, coinName) {
+      const container = document.getElementById('chart-container');
+      const title = document.getElementById('chart-title');
+      const ctx = document.getElementById('cryptoChart').getContext('2d');
+      const range = document.getElementById('rangeSelect').value;
+
+      title.textContent = `Histórico de ${coinName} (últimos ${range} días)`;
+      container.style.display = 'block';
+
+      const res = await fetch(
+        `https://api.coingecko.com/api/v3/coins/${coinId}/market_chart?vs_currency=usd&days=${range}`
+      );
+      const data = await res.json();
+
+      const prices = data.prices.map(p => ({ time: new Date(p[0]), value: p[1] }));
+      const sampled = prices.filter((_, i) => i % Math.ceil(prices.length / 50) === 0);
+
+      const labels = sampled.map(p =>
+        p.time.toLocaleDateString('es-MX', { day: '2-digit', month: 'short' })
+      );
+      const values = sampled.map(p => p.value);
+
+      if (window.cryptoChart && typeof window.cryptoChart.destroy === 'function') {
+        window.cryptoChart.destroy();
+      }
+
+      window.cryptoChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels,
+          datasets: [{
+            label: 'Precio USD',
+            data: values,
+            borderColor: '#ffcc00',
+            backgroundColor: 'rgba(255, 204, 0, 0.2)',
+            tension: 0.3,
+            fill: true,
+            pointRadius: 0
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          scales: {
+            x: { ticks: { color: '#fff' }, grid: { color: '#333' } },
+            y: { ticks: { color: '#fff' }, grid: { color: '#333' } }
+          },
+          plugins: { legend: { labels: { color: '#fff' } } }
+        }
+      });
+    }
+
+    document.getElementById('crypto-table').addEventListener('click', e => {
+      const row = e.target.closest('tr[data-coin]');
+      if (row) {
+        const coin = row.getAttribute('data-coin');
+        const name = row.querySelector('.coin').textContent;
+        window.currentCoinId = coin;
+        window.currentCoinName = name;
+        showChart(coin, name);
+      }
+    });
+
+    document.getElementById('rangeSelect').addEventListener('change', () => {
+      if (window.currentCoinId && window.currentCoinName) {
+        showChart(window.currentCoinId, window.currentCoinName);
+      }
+    });
+
     fetchPrices();
-    setInterval(fetchPrices, 60000);
+    setInterval(fetchPrices, 300000); // cada 5 minutos
   </script>
 </body>
 </html>
