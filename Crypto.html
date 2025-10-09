@@ -147,10 +147,9 @@ input[type="number"].edit-price {
         </div>
         <div class="row" style="justify-content:flex-end;gap:10px">
           <button id="btnSavePayPal" class="btn">💾 Guardar</button>
-          <button id="btnExport" class="btn">⬇️ Exportar</button>
-          <input type="file" id="fileImport" accept=".json" style="display:none">
-          <button id="btnImport" class="btn">⬆️ Importar</button>
-          <button id="btnClearAll" class="btn">🗑️ Limpiar</button>
+          <!-- ÚNICA ADICIÓN: BOTÓN EXPORTAR -->
+          <button id="btnExport" class="btn" title="Exportar respaldo">⬇️ Exportar</button>
+          <button id="btnClearAll" class="btn" title="Borrar todo">🗑️ Limpiar</button>
         </div>
       </div>
 
@@ -196,47 +195,95 @@ const fmt=n=>isFinite(n)?n.toLocaleString(undefined,{minimumFractionDigits:2,max
 const COINS=[{id:'bitcoin',sym:'BTC',priceEl:'#btc',recoEl:'#btc-reco',trendEl:'#btc-trend'},{id:'ethereum',sym:'ETH',priceEl:'#eth',recoEl:'#eth-reco',trendEl:'#eth-trend'},{id:'solana',sym:'SOL',priceEl:'#sol',recoEl:'#sol-reco',trendEl:'#sol-trend'}];
 let STATE={prices:{},chart:null,pie:null,txs:[],paypal:0,currentCoinId:null,currentCoinName:null};
 
-// ✅ EXPORTAR RESPALDO
-function exportBackup(){
-  if(!STATE.txs.length){return alert('No hay transacciones que exportar.');}
-  const dataStr="data:text/json;charset=utf-8,"+encodeURIComponent(JSON.stringify(STATE.txs,null,2));
-  const link=document.createElement('a');
-  link.setAttribute('href',dataStr);
-  link.setAttribute('download','crypto_portfolio_backup.json');
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
+async function fetchPrices(){
+  const ids=COINS.map(c=>c.id).join(',');
+  const r=await fetch(`https://api.coingecko.com/api/v3/simple/price?ids=${ids}&vs_currencies=usd`);
+  const d=await r.json();
+  STATE.prices={BTC:d.bitcoin.usd,ETH:d.ethereum.usd,SOL:d.solana.usd};
+  COINS.forEach(c=>$(c.priceEl).textContent=`$${fmt(STATE.prices[c.sym])}`);
+  const ts='Última actualización: '+new Date().toLocaleTimeString();
+  $('#hora').textContent=ts;$('#lastUpdate').textContent=ts;
 }
 
-// ✅ IMPORTAR RESPALDO
-function importBackup(file){
-  const reader=new FileReader();
-  reader.onload=function(e){
-    try{
-      const imported=JSON.parse(e.target.result);
-      if(!Array.isArray(imported)) throw new Error("Formato inválido");
-      STATE.txs=imported;
-      saveLS();
-      renderTx();
-      alert('Respaldo importado correctamente.');
-    }catch(err){
-      alert('Error al importar el respaldo: '+err.message);
-    }
-  };
-  reader.readAsText(file);
+async function fetchHistory(id,days){
+  const r=await fetch(`https://api.coingecko.com/api/v3/coins/${id}/market_chart?vs_currency=usd&days=${days}`);
+  return r.json();
 }
 
-// --- RESTO DEL CÓDIGO ORIGINAL SIN CAMBIOS ---
-async function fetchPrices(){const ids=COINS.map(c=>c.id).join(',');const r=await fetch(`https://api.coingecko.com/api/v3/simple/price?ids=${ids}&vs_currencies=usd`);const d=await r.json();STATE.prices={BTC:d.bitcoin.usd,ETH:d.ethereum.usd,SOL:d.solana.usd};COINS.forEach(c=>$(c.priceEl).textContent=`$${fmt(STATE.prices[c.sym])}`);const ts='Última actualización: '+new Date().toLocaleTimeString();$('#hora').textContent=ts;$('#lastUpdate').textContent=ts;}
-function loadLS(){try{STATE.txs=JSON.parse(localStorage.getItem('crypto_v5_txs')||'[]');STATE.paypal=parseFloat(localStorage.getItem('crypto_v5_paypal')||'0')||0;}catch{STATE.txs=[];STATE.paypal=0;}$('#paypalBalance').value=STATE.paypal||'';renderTx();}
+async function analyze90d(){
+  const out=await Promise.all(COINS.map(c=>fetchHistory(c.id,90)));
+  const stats=out.map(d=>{
+    const p=d.prices.map(x=>x[1]);
+    const start=p[0],end=p[p.length-1];
+    const ret=(end-start)/start;
+    const m=p.reduce((a,b)=>a+b,0)/p.length;
+    const v=p.reduce((a,b)=>a+(b-m)**2,0)/p.length;
+    const vol=Math.sqrt(v)/m;
+    const sma7=p.slice(-7).reduce((a,b)=>a+b,0)/7;
+    const sma30=p.slice(-30).reduce((a,b)=>a+b,0)/30;
+    let trend='🟡 Neutra',cls='mid';
+    if(sma7>sma30*1.02){trend='🟢 Alcista';cls='ok';}
+    else if(sma7<sma30*0.98){trend='🔴 Bajista';cls='bad';}
+    return{ret,vol,trend,cls};
+  });
+  const scores=stats.map(s=>s.ret/s.vol);
+  const total=scores.reduce((a,b)=>a+b,0);
+  const pct=scores.map(s=>s/total*100);
+  COINS.forEach((c,i)=>{$(c.recoEl).textContent=`${pct[i].toFixed(1)}%`;const el=$(c.trendEl);el.textContent=stats[i].trend;el.className=`trend ${stats[i].cls}`;});
+}
+
+async function showChart(id,name){
+  $('#titulo').textContent=`Histórico de ${name}`;
+  const days=$('#rango').value;
+  const d=await fetchHistory(id,days);
+  const pts=d.prices.map(p=>({x:p[0],y:p[1]}));
+  if(STATE.chart)STATE.chart.destroy();
+  STATE.chart=new Chart($('#grafCanvas').getContext('2d'),{type:'line',data:{datasets:[{label:'Precio USD',data:pts,borderColor:'#ffcc00',backgroundColor:'rgba(255,204,0,.18)',fill:true,tension:.3,pointRadius:0}]},options:{scales:{x:{type:'time',time:{unit:days>90?'month':(days>30?'week':'day')},ticks:{color:'#fff'},grid:{color:'#333'}},y:{ticks:{color:'#fff'},grid:{color:'#333'}}},plugins:{legend:{labels:{color:'#fff'}}}}});
+}
+
+function loadLS(){
+  try{STATE.txs=JSON.parse(localStorage.getItem('crypto_v5_txs')||'[]');STATE.paypal=parseFloat(localStorage.getItem('crypto_v5_paypal')||'0')||0;}
+  catch{STATE.txs=[];STATE.paypal=0;}
+  $('#paypalBalance').value=STATE.paypal||'';renderTx();
+}
 function saveLS(){localStorage.setItem('crypto_v5_txs',JSON.stringify(STATE.txs));}
 
-// 📦 EVENTOS NUEVOS
-$('#btnExport').onclick=exportBackup;
-$('#btnImport').onclick=()=>$('#fileImport').click();
-$('#fileImport').onchange=e=>{if(e.target.files.length)importBackup(e.target.files[0]);};
+function renderTx(){
+  const tb=$('#txTbody');tb.innerHTML='';
+  if(!STATE.txs.length){tb.innerHTML='<tr><td colspan="5" class="muted small" style="text-align:center;">Sin compras registradas</td></tr>';updateTotals();return;}
+  STATE.txs.forEach((t,i)=>{
+    const tr=document.createElement('tr');
+    tr.innerHTML=`<td>${t.date}</td><td>${t.coin}</td><td>$${fmt(t.usd)}</td><td><input type="number" step="0.01" class="edit-price" value="${t.buyPrice||0}" data-i="${i}"></td><td><button class="btn small" data-i="${i}">🗑</button></td>`;
+    tb.appendChild(tr);
+  });
+  tb.querySelectorAll('.edit-price').forEach(inp=>{inp.addEventListener('change',e=>{const i=e.target.dataset.i;STATE.txs[i].buyPrice=parseFloat(e.target.value)||0;saveLS();updateTotals();});});
+  tb.querySelectorAll('button').forEach(b=>{b.onclick=()=>{STATE.txs.splice(b.dataset.i,1);saveLS();renderTx();updateTotals();};});
+  updateTotals();
+}
 
-// ... resto del JS sigue igual ...
+function updateTotals(){
+  const pieMode=document.querySelector('input[name="pieMode"]:checked').value;
+  const sumInvEl=$('#sumInvested'),sumCurEl=$('#sumCurrent'),sumPnLEl=$('#sumPnL'),coinSummary=$('#coinSummary');
+  if(!STATE.txs.length){sumInvEl.textContent='$0.00';sumCurEl.textContent='$0.00';sumPnLEl.textContent='$0.00';coinSummary.innerHTML='';if(STATE.pie)STATE.pie.destroy();return;}
+  let invested=0,current=0;
+  const coinData={BTC:{inv:0,cur:0},ETH:{inv:0,cur:0},SOL:{inv:0,cur:0}};
+  STATE.txs.forEach(t=>{const now=STATE.prices[t.coin];invested+=t.usd;const value=t.buyPrice?((now*t.usd)/t.buyPrice):0;current+=value;coinData[t.coin].inv+=t.usd;coinData[t.coin].cur+=value;});
+  const pnl=current-invested;const pnlPct=(pnl/invested)*100;
+  sumInvEl.textContent=`$${fmt(invested)}`;sumCurEl.textContent=`$${fmt(current)}`;sumPnLEl.textContent=`${pnl>=0?'+':''}$${fmt(pnl)} (${pnlPct.toFixed(1)}%)`;sumPnLEl.style.color=pnl>=0?'var(--ok)':'var(--bad)';
+  coinSummary.innerHTML='';Object.keys(coinData).forEach(sym=>{const d=coinData[sym];if(!d.inv)return;const pl=d.cur-d.inv;const tr=document.createElement('tr');tr.innerHTML=`<td>${sym}</td><td>$${fmt(d.inv)}</td><td>$${fmt(d.cur)}</td><td style="color:${pl>=0?'var(--ok)':'var(--bad)'};">${pl>=0?'+':''}$${fmt(pl)}</td>`;coinSummary.appendChild(tr);});
+  const labels=['BTC','ETH','SOL'];const dataInv=labels.map(s=>pieMode==='cur'?coinData[s].cur:coinData[s].inv);$('#pieTitle').textContent=`Distribución del Portafolio (${pieMode==='cur'?'por valor actual':'por inversión'})`;if(STATE.pie)STATE.pie.destroy();STATE.pie=new Chart($('#pieCanvas').getContext('2d'),{type:'pie',data:{labels,datasets:[{data:dataInv,backgroundColor:['#f7931a','#627eea','#14f195']}]},options:{plugins:{legend:{labels:{color:'#fff'}}}}});
+}
+
+/* Eventos (sin cambios salvo el export) */
+document.querySelectorAll('input[name="pieMode"]').forEach(el=>{el.addEventListener('change',()=>updateTotals());});
+$('#tabla').addEventListener('click',e=>{const r=e.target.closest('tr[data-coin]');if(!r)return;const c=COINS.find(x=>x.id===r.dataset.coin);STATE.currentCoinId=c.id;STATE.currentCoinName=c.sym;showChart(c.id,c.sym);});
+$('#rango').addEventListener('change',()=>{if(STATE.currentCoinId)showChart(STATE.currentCoinId,STATE.currentCoinName);});
+$('#btnAddTx').onclick=()=>{const coin=$('#txCoin').value,date=$('#txDate').value,usd=parseFloat($('#txUsd').value);if(!coin||!date||!usd||usd<=0)return alert('Completa los datos.');const buyPrice=STATE.prices[coin];STATE.txs.unshift({coin,date,usd,buyPrice});saveLS();renderTx();$('#txUsd').value='';};
+$('#btnSavePayPal').onclick=()=>{const v=parseFloat($('#paypalBalance').value)||0;STATE.paypal=v;localStorage.setItem('crypto_v5_paypal',v);alert('Saldo PayPal guardado.');};
+$('#btnExport').onclick=()=>{ if(!STATE.txs.length){alert('No hay transacciones que exportar.');return;} const dataStr="data:text/json;charset=utf-8,"+encodeURIComponent(JSON.stringify(STATE.txs,null,2)); const link=document.createElement('a'); link.setAttribute('href',dataStr); link.setAttribute('download','crypto_portfolio_backup.json'); document.body.appendChild(link); link.click(); document.body.removeChild(link); };
+$('#btnClearAll').onclick=()=>{if(!confirm('¿Borrar todo?'))return;STATE.txs=[];STATE.paypal=0;localStorage.clear();renderTx();$('#paypalBalance').value='';};
+$('#btnRefresh').onclick=async()=>{await fetchPrices();await analyze90d();updateTotals();};
+(async function init(){loadLS();await fetchPrices();await analyze90d();updateTotals();setInterval(async()=>{await fetchPrices();updateTotals();},300000);})();
 </script>
 </body>
 </html>
