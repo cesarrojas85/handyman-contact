@@ -115,11 +115,11 @@
       filter: drop-shadow(3px 3px 8px rgba(255,215,0,0.8));
     }
 
-    /* 🔘 Botón de idioma flotante con animación */
+    /* 🔘 Botón de idioma flotante en esquina inferior derecha */
     .lang-toggle {
       position: fixed;
-      top: 15px;
-      right: 15px;
+      bottom: 20px;
+      right: 20px;
       z-index: 1000;
       background: rgba(255, 255, 255, 0.15);
       backdrop-filter: blur(6px);
@@ -217,8 +217,8 @@
       }
 
       .lang-toggle {
-        top: 10px;
-        right: 10px;
+        bottom: 15px;
+        right: 15px;
         font-size: 14px;
         padding: 6px 12px;
       }
@@ -227,7 +227,7 @@
 </head>
 
 <body>
-  <!-- Botón de cambio de idioma (flotante animado) -->
+  <!-- Botón de cambio de idioma (flotante inferior derecho) -->
   <div class="lang-toggle" id="lang-toggle">🇺🇸 EN</div>
 
   <!-- Banner superior -->
