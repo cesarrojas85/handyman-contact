@@ -73,6 +73,7 @@
     .spinner.active { display: inline-block; }
     @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
     .error { color: var(--bad); font-size: .9rem; margin-top: 8px; }
+    #budgetCard { margin-top: 20px; }
   </style>
 </head>
 <body>
@@ -191,18 +192,40 @@
         </table>
       </div>
     </div>
+
+    <!-- NUEVA TARJETA: PRESUPUESTO -->
+    <div class="card" id="budgetCard">
+      <h2>Presupuesto para Compras</h2>
+      <div class="body">
+        <div class="grid2">
+          <div>
+            <div class="muted small">Presupuesto Disponible (USD)</div>
+            <input id="budgetInput" class="input" type="number" step="0.01" placeholder="Ej. 1000.00" aria-label="Presupuesto disponible para compras en USD" />
+          </div>
+          <div class="row" style="align-items:end;justify-content:flex-end">
+            <button id="btnCalculateBudget" class="btn" aria-label="Calcular distribución del presupuesto">📊 Calcular</button>
+          </div>
+        </div>
+        <div id="budgetError" class="error" role="alert"></div>
+        <table class="table-mini" id="budgetTable" style="margin-top:16px;">
+          <thead><tr><th>Moneda</th><th>% Recomendado</th><th>Monto USD</th><th>Cantidad</th></tr></thead>
+          <tbody id="budgetTbody"></tbody>
+        </table>
+      </div>
+    </div>
   </div>
 
   <script>
     const $ = s => document.querySelector(s);
     const $$ = s => document.querySelectorAll(s);
     const fmt = (n, currency = 'USD') => isFinite(n) ? n.toLocaleString('en-US', { style: 'currency', currency, minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '—';
+    const fmtCrypto = (n) => isFinite(n) ? n.toLocaleString('en-US', { minimumFractionDigits: 6, maximumFractionDigits: 6 }) : '—';
     const COINS = [
       { id: 'bitcoin', sym: 'BTC', priceEl: '#btc', recoEl: '#btc-reco', trendEl: '#btc-trend' },
       { id: 'ethereum', sym: 'ETH', priceEl: '#eth', recoEl: '#eth-reco', trendEl: '#eth-trend' },
       { id: 'solana', sym: 'SOL', priceEl: '#sol', recoEl: '#sol-reco', trendEl: '#sol-trend' }
     ];
-    let STATE = { prices: {}, chart: null, pie: null, txs: [], paypal: 0, currentCoinId: null, currentCoinName: null, currency: 'USD' };
+    let STATE = { prices: {}, chart: null, pie: null, txs: [], paypal: 0, budget: 0, recommendations: {}, currentCoinId: null, currentCoinName: null, currency: 'USD' };
     const CACHE_KEY = 'crypto_v5_cache';
     const CACHE_EXPIRY = 3600 * 1000; // 1 hora
 
@@ -279,6 +302,7 @@
           const el = $(c.trendEl);
           el.textContent = stats[i].trend;
           el.className = `trend ${stats[i].cls}`;
+          STATE.recommendations[c.sym] = pct[i];
         });
         $('#priceError').textContent = '';
       } catch (e) {
@@ -322,17 +346,22 @@
       try {
         STATE.txs = JSON.parse(localStorage.getItem('crypto_v5_txs') || '[]');
         STATE.paypal = parseFloat(localStorage.getItem('crypto_v5_paypal') || '0') || 0;
+        STATE.budget = parseFloat(localStorage.getItem('crypto_v5_budget') || '0') || 0;
       } catch {
         STATE.txs = [];
         STATE.paypal = 0;
+        STATE.budget = 0;
       }
       $('#paypalBalance').value = STATE.paypal || '';
+      $('#budgetInput').value = STATE.budget || '';
       renderTx();
+      renderBudget();
     }
 
     function saveLS() {
       localStorage.setItem('crypto_v5_txs', JSON.stringify(STATE.txs));
       localStorage.setItem('crypto_v5_paypal', STATE.paypal);
+      localStorage.setItem('crypto_v5_budget', STATE.budget);
     }
 
     function renderTx() {
@@ -414,6 +443,25 @@
         data: { labels, datasets: [{ data: dataInv, backgroundColor: ['#f7931a', '#627eea', '#14f195'] }] },
         options: { plugins: { legend: { labels: { color: '#fff' } } } }
       });
+    }
+
+    function renderBudget() {
+      const tb = $('#budgetTbody');
+      tb.innerHTML = '';
+      if (!Object.keys(STATE.recommendations).length || !STATE.budget) {
+        tb.innerHTML = `<tr><td colspan="4" class="muted small" style="text-align:center;">Ingresa un presupuesto y actualiza los datos para ver la distribución.</td></tr>`;
+        return;
+      }
+      const fragment = document.createDocumentFragment();
+      COINS.forEach(c => {
+        const reco = STATE.recommendations[c.sym] || 0;
+        const amount = (STATE.budget * reco) / 100;
+        const qty = STATE.prices[c.sym] ? amount / STATE.prices[c.sym] : 0;
+        const tr = document.createElement('tr');
+        tr.innerHTML = `<td>${c.sym}</td><td>${reco.toFixed(1)}%</td><td>${fmt(amount, STATE.currency)}</td><td>${fmtCrypto(qty)} ${c.sym}</td>`;
+        fragment.appendChild(tr);
+      });
+      tb.appendChild(fragment);
     }
 
     function validateDate(dateStr) {
@@ -500,27 +548,47 @@
       if (!confirm('¿Borrar todo?')) return;
       STATE.txs = [];
       STATE.paypal = 0;
+      STATE.budget = 0;
       localStorage.clear();
       renderTx();
+      renderBudget();
       $('#paypalBalance').value = '';
+      $('#budgetInput').value = '';
+    };
+    $('#btnCalculateBudget').onclick = () => {
+      const budget = parseFloat($('#budgetInput').value) || 0;
+      if (budget <= 0) {
+        $('#budgetError').textContent = 'Ingresa un presupuesto válido (mayor a 0).';
+        return;
+      }
+      if (!Object.keys(STATE.recommendations).length || !Object.keys(STATE.prices).length) {
+        $('#budgetError').textContent = 'Actualiza los datos de precios y recomendaciones primero.';
+        return;
+      }
+      $('#budgetError').textContent = '';
+      STATE.budget = budget;
+      saveLS();
+      renderBudget();
     };
     $('#btnRefresh').onclick = async () => {
       await fetchPrices();
       await analyze90d();
       updateTotals();
+      renderBudget();
     };
 
     /* Inicialización */
     (async function init() {
-      // Establecer fecha máxima para el input de fecha
       $('#txDate').max = new Date().toISOString().split('T')[0];
       loadLS();
       await fetchPrices();
       await analyze90d();
       updateTotals();
+      renderBudget();
       setInterval(async () => {
         await fetchPrices();
         updateTotals();
+        renderBudget();
       }, 300000);
     })();
   </script>
