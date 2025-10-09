@@ -43,7 +43,7 @@
       padding-right: 20px;
     }
 
-    /* Overlay degradado para mejorar contraste del texto */
+    /* Overlay degradado */
     .banner::before {
       content: "";
       position: absolute;
@@ -64,6 +64,7 @@
       text-align: left;
       z-index: 2; /* encima del overlay */
       pointer-events: none;
+      max-width: 60%;
     }
 
     /* Nombre de la marca */
@@ -95,7 +96,7 @@
       animation-delay: 0.6s;
     }
 
-    /* Animación de entrada */
+    /* Animación */
     @keyframes fadeSlideIn {
       0% { opacity: 0; transform: translateY(20px); }
       100% { opacity: 1; transform: translateY(0); }
@@ -146,14 +147,39 @@
     .sms  { background-color: #1E90FF; }
     .whatsapp { background-color: #25D366; }
 
-    /* Responsive */
-    @media (max-width: 400px) {
-      .contact-btn { width: 80%; font-size: 16px; }
-      h1 { font-size: 20px; }
-      .logo-banner { width: 90px; margin-left: 8px; }
-      .banner { padding-right: 10px; height: 200px; }
-      .brand-name { font-size: 24px; }
-      .slogan { font-size: 14px; }
+    /* ✅ Ajustes móviles */
+    @media (max-width: 480px) {
+      .banner {
+        height: 220px;
+        flex-direction: column;
+        justify-content: flex-end;
+        padding-right: 0;
+        padding-bottom: 10px;
+      }
+
+      .logo-banner {
+        position: absolute;
+        top: 15px;
+        right: 15px;
+        width: 80px;
+      }
+
+      .banner-text {
+        top: auto;
+        bottom: 15px;
+        left: 15px;
+        transform: none;
+        max-width: 80%;
+      }
+
+      .brand-name {
+        font-size: 20px;
+      }
+
+      .slogan {
+        font-size: 13px;
+        line-height: 1.3;
+      }
     }
   </style>
 </head>
