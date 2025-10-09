@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>HandyGo Services</title>
+
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -12,35 +13,42 @@
       background: #f8f9fa;
       color: #333;
     }
+
     header {
       background: #4B0000;  
       color: white;
       padding: 15px;
       text-align: center;
     }
+
     nav {
       background: #704950;
       padding: 10px;
       text-align: center;
     }
+
     nav a {
       color: white;
       text-decoration: none;
       margin: 0 15px;
       font-weight: bold;
     }
+
     nav a:hover {
       text-decoration: underline;
     }
+
     .container {
       max-width: 900px;
       margin: auto;
       padding: 20px;
     }
+
     h1 {
       text-align: center;
       margin-bottom: 30px;
     }
+
     .service {
       background: white;
       padding: 20px;
@@ -48,53 +56,172 @@
       border-radius: 10px;
       box-shadow: 0 2px 6px rgba(0,0,0,0.1);
     }
+
     .service h2 {
       margin-top: 0;
       color: #2c3e50;
     }
+
+    /* 🔘 Botón de idioma flotante */
+    .lang-toggle {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      z-index: 1000;
+      background: rgba(75, 0, 0, 0.85);
+      border: 1px solid rgba(255,255,255,0.3);
+      border-radius: 30px;
+      padding: 8px 14px;
+      cursor: pointer;
+      color: #FFD700;
+      font-weight: bold;
+      font-size: 16px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.3s ease;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+      opacity: 0;
+      animation: fadeInLang 1s ease forwards 0.5s, pulse 2.5s infinite 2s;
+    }
+
+    @keyframes fadeInLang {
+      from { opacity: 0; transform: scale(0.8); }
+      to { opacity: 1; transform: scale(1); }
+    }
+
+    @keyframes pulse {
+      0%, 100% { box-shadow: 0 0 8px rgba(255,215,0,0.3); }
+      50% { box-shadow: 0 0 16px rgba(255,215,0,0.7); }
+    }
+
+    .lang-toggle:hover {
+      background: rgba(255, 215, 0, 0.25);
+      transform: scale(1.05);
+    }
+
+    @media (max-width: 480px) {
+      .lang-toggle {
+        bottom: 15px;
+        right: 15px;
+        font-size: 14px;
+        padding: 6px 12px;
+      }
+    }
   </style>
 </head>
+
 <body>
+  <!-- Botón de idioma flotante -->
+  <div class="lang-toggle" id="lang-toggle">🇺🇸 EN</div>
+
   <header>
-    <h1>Our Services</h1>
+    <h1 id="page-title">Our Services</h1>
   </header>
 
   <nav>
-    <a href="index.html">Click here to Contact</a>
+    <a href="index.html" id="contact-link">Click here to Contact</a>
   </nav>
 
   <div class="container">
     <div class="service">
-      <h2>🔧 <a href="GaleriaFix.html" style="text-decoration:none; color:inherit;">Home Repairs</a></h2>
-      <p>Fixing doors, windows, locks, and taking care of minor electrical or plumbing issues.</p>
+      <h2 id="srv1-title">🔧 <a href="GaleriaFix.html" style="text-decoration:none; color:inherit;">Home Repairs</a></h2>
+      <p id="srv1-text">Fixing doors, windows, locks, and taking care of minor electrical or plumbing issues.</p>
     </div>
 
     <div class="service">
-      <h2>🪚 <a href="GaleriaCarpentry.html" style="text-decoration:none; color:inherit;">Carpentry</a></h2>
-      <p>Installation and repair of furniture, doors, frames, baseboard, crow moulding and custom wood projects.</p>
+      <h2 id="srv2-title">🪚 <a href="GaleriaCarpentry.html" style="text-decoration:none; color:inherit;">Carpentry</a></h2>
+      <p id="srv2-text">Installation and repair of furniture, doors, frames, baseboard, crown moulding and custom wood projects.</p>
     </div>
 
     <div class="service">
-      <h2>🪜 Fencing</h2>
-      <p>Metal and wooden fences.</p>
+      <h2 id="srv3-title">🪜 Fencing</h2>
+      <p id="srv3-text">Metal and wooden fences.</p>
     </div>
 
     <div class="service">
-      <h2>🏠 Roofing</h2>
-      <p>Install and Repair shingles roofing.</p>
-    </div>
-
-    
-    <div class="service">
-      <h2>🎨 Painting</h2>
-      <p>Interior painting & touch-ups.</p>
+      <h2 id="srv4-title">🏠 Roofing</h2>
+      <p id="srv4-text">Install and repair shingles roofing.</p>
     </div>
 
     <div class="service">
-      <h2>⚡ Installations</h2>
-      <p>Mounting light fixtures, ceiling fans, TV brackets, shelves, and more.</p>
+      <h2 id="srv5-title">🎨 Painting</h2>
+      <p id="srv5-text">Interior painting and touch-ups.</p>
+    </div>
+
+    <div class="service">
+      <h2 id="srv6-title">⚡ Installations</h2>
+      <p id="srv6-text">Mounting light fixtures, ceiling fans, TV brackets, shelves, and more.</p>
     </div>
   </div>
+
+  <!-- 🌐 Script bilingüe -->
+  <script>
+    const texts = {
+      en: {
+        pageTitle: "Our Services",
+        contactLink: "Click here to Contact",
+        lang: "🇺🇸 EN",
+        srv1Title: "🔧 Home Repairs",
+        srv1Text: "Fixing doors, windows, locks, and taking care of minor electrical or plumbing issues.",
+        srv2Title: "🪚 Carpentry",
+        srv2Text: "Installation and repair of furniture, doors, frames, baseboard, crown moulding and custom wood projects.",
+        srv3Title: "🪜 Fencing",
+        srv3Text: "Metal and wooden fences.",
+        srv4Title: "🏠 Roofing",
+        srv4Text: "Install and repair shingles roofing.",
+        srv5Title: "🎨 Painting",
+        srv5Text: "Interior painting and touch-ups.",
+        srv6Title: "⚡ Installations",
+        srv6Text: "Mounting light fixtures, ceiling fans, TV brackets, shelves, and more."
+      },
+      es: {
+        pageTitle: "Nuestros Servicios",
+        contactLink: "Haz clic aquí para contactar",
+        lang: "🇲🇽 ES",
+        srv1Title: "🔧 Reparaciones del Hogar",
+        srv1Text: "Reparación de puertas, ventanas, cerraduras y atención a pequeños problemas eléctricos o de plomería.",
+        srv2Title: "🪚 Carpintería",
+        srv2Text: "Instalación y reparación de muebles, puertas, marcos, molduras y proyectos personalizados de madera.",
+        srv3Title: "🪜 Cercas",
+        srv3Text: "Instalación y reparación de cercas metálicas y de madera.",
+        srv4Title: "🏠 Techos",
+        srv4Text: "Instalación y reparación de techos con tejas asfálticas.",
+        srv5Title: "🎨 Pintura",
+        srv5Text: "Pintura interior y retoques.",
+        srv6Title: "⚡ Instalaciones",
+        srv6Text: "Montaje de lámparas, ventiladores, soportes de TV, estantes y más."
+      }
+    };
+
+    let currentLang = localStorage.getItem('preferredLang') ||
+                      (navigator.language.startsWith('es') ? 'es' : 'en');
+
+    const applyLanguage = (lang) => {
+      document.getElementById('lang-toggle').innerHTML = texts[lang].lang;
+      document.getElementById('page-title').textContent = texts[lang].pageTitle;
+      document.getElementById('contact-link').textContent = texts[lang].contactLink;
+      document.getElementById('srv1-title').innerHTML = texts[lang].srv1Title;
+      document.getElementById('srv1-text').textContent = texts[lang].srv1Text;
+      document.getElementById('srv2-title').innerHTML = texts[lang].srv2Title;
+      document.getElementById('srv2-text').textContent = texts[lang].srv2Text;
+      document.getElementById('srv3-title').innerHTML = texts[lang].srv3Title;
+      document.getElementById('srv3-text').textContent = texts[lang].srv3Text;
+      document.getElementById('srv4-title').innerHTML = texts[lang].srv4Title;
+      document.getElementById('srv4-text').textContent = texts[lang].srv4Text;
+      document.getElementById('srv5-title').innerHTML = texts[lang].srv5Title;
+      document.getElementById('srv5-text').textContent = texts[lang].srv5Text;
+      document.getElementById('srv6-title').innerHTML = texts[lang].srv6Title;
+      document.getElementById('srv6-text').textContent = texts[lang].srv6Text;
+    };
+
+    applyLanguage(currentLang);
+
+    document.getElementById('lang-toggle').addEventListener('click', () => {
+      currentLang = currentLang === 'en' ? 'es' : 'en';
+      localStorage.setItem('preferredLang', currentLang);
+      applyLanguage(currentLang);
+    });
+  </script>
 </body>
 </html>
-
