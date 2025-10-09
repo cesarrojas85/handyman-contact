@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Crypto Dashboard</title>
+  <title>Personal Dashboard</title>
 
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet" />
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -74,11 +74,13 @@
     @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
     .error { color: var(--bad); font-size: .9rem; margin-top: 8px; }
     #budgetCard { margin-top: 20px; }
+    #salesCard { margin-top: 20px; }
+    #incomeCard { margin-top: 20px; }
   </style>
 </head>
 <body>
   <div class="nav">
-    <div class="brand">Crypto Dashboard</div>
+    <div class="brand">Personal Dashboard</div>
     <div class="meta">
       <span id="lastUpdate" class="small">—</span>
       <button id="btnRefresh" class="btn" aria-label="Actualizar datos">🔄 Actualizar</button>
@@ -133,18 +135,30 @@
       </h2>
       <div class="body">
         <div class="sub-summary">
-          <h3 class="small muted" style="margin-bottom:8px;">Resumen por moneda</h3>
+          <h3 class="small muted" style="margin-bottom:8px;">Resumen Financiero</h3>
+          <table class="table-mini">
+            <thead><tr><th>Categoría</th><th>Monto USD</th></tr></thead>
+            <tbody id="financialSummary">
+              <tr><td>Portafolio Cripto (Invertido)</td><td id="sumInvested">—</td></tr>
+              <tr><td>Portafolio Cripto (Actual)</td><td id="sumCurrent">—</td></tr>
+              <tr><td>Ganancia/Pérdida</td><td id="sumPnL">—</td></tr>
+              <tr><td>Otros Ingresos</td><td id="sumIncomes">—</td></tr>
+              <tr><td>Saldo PayPal</td><td id="sumPaypal">—</td></tr>
+              <tr><td><strong>Total Activos</strong></td><td id="sumTotal">—</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="sub-summary">
+          <h3 class="small muted" style="margin-bottom:8px;">Resumen por Moneda</h3>
           <table class="table-mini">
             <thead><tr><th>Moneda</th><th>Invertido</th><th>Actual</th><th>P/L</th></tr></thead>
             <tbody id="coinSummary"></tbody>
           </table>
         </div>
-
         <div style="margin-bottom:20px;">
           <h3 class="small muted" id="pieTitle" style="margin-bottom:8px;">Distribución del Portafolio (por inversión)</h3>
           <canvas id="pieCanvas"></canvas>
         </div>
-
         <div class="grid2">
           <div>
             <div class="muted small">Saldo PayPal</div>
@@ -157,13 +171,11 @@
             <button id="btnClearAll" class="btn" aria-label="Borrar todo">🗑️ Limpiar</button>
           </div>
         </div>
-
         <div class="tally">
-          <div class="pill"><div class="lab">Invertido</div><div class="val" id="sumInvested">$0.00</div></div>
-          <div class="pill"><div class="lab">Actual</div><div class="val" id="sumCurrent">$0.00</div></div>
-          <div class="pill"><div class="lab">P/L</div><div class="val" id="sumPnL">$0.00</div></div>
+          <div class="pill"><div class="lab">Invertido</div><div class="val" id="sumInvestedPill">$0.00</div></div>
+          <div class="pill"><div class="lab">Actual</div><div class="val" id="sumCurrentPill">$0.00</div></div>
+          <div class="pill"><div class="lab">P/L</div><div class="val" id="sumPnLPill">$0.00</div></div>
         </div>
-
         <div class="grid2" style="margin-top:14px">
           <div>
             <label class="small muted" for="txCoin">Moneda</label>
@@ -197,7 +209,7 @@
       </div>
     </div>
 
-    <!-- NUEVA TARJETA: PRESUPUESTO -->
+    <!-- TARJETA: PRESUPUESTO -->
     <div class="card" id="budgetCard">
       <h2>Presupuesto para Compras</h2>
       <div class="body">
@@ -218,7 +230,7 @@
       </div>
     </div>
 
-    <!-- NUEVA TARJETA: VENTAS -->
+    <!-- TARJETA: VENTAS -->
     <div class="card" id="salesCard">
       <h2>Ventas de Criptomonedas</h2>
       <div class="body">
@@ -260,6 +272,46 @@
         </table>
       </div>
     </div>
+
+    <!-- NUEVA TARJETA: OTROS INGRESOS -->
+    <div class="card" id="incomeCard">
+      <h2>Otros Ingresos</h2>
+      <div class="body">
+        <div class="grid2">
+          <div>
+            <label class="small muted" for="incomeCategory">Categoría</label>
+            <select id="incomeCategory" class="select" aria-label="Seleccionar categoría de ingreso">
+              <option value="Salario">Salario</option>
+              <option value="Freelance">Freelance</option>
+              <option value="Inversiones">Inversiones</option>
+              <option value="Otros">Otros</option>
+            </select>
+          </div>
+          <div>
+            <label class="small muted" for="incomeDate">Fecha</label>
+            <input id="incomeDate" class="input" type="date" aria-label="Fecha de ingreso" max="" />
+          </div>
+          <div>
+            <label class="small muted" for="incomeAmount">Monto (USD)</label>
+            <input id="incomeAmount" class="input" type="number" step="0.01" placeholder="Ej. 1000.00" aria-label="Monto en USD" />
+          </div>
+          <div>
+            <label class="small muted" for="incomeDescription">Descripción (Opcional)</label>
+            <input id="incomeDescription" class="input" type="text" placeholder="Ej. Pago por proyecto" aria-label="Descripción del ingreso" />
+          </div>
+          <div class="row" style="align-items:end;justify-content:flex-end">
+            <button id="btnAddIncome" class="btn" aria-label="Registrar ingreso">➕ Registrar Ingreso</button>
+          </div>
+        </div>
+        <div id="incomeError" class="error" role="alert"></div>
+        <table class="table-mini" id="incomeTable">
+          <thead>
+            <tr><th>Fecha</th><th>Categoría</th><th>Monto USD</th><th>Descripción</th><th>Acción</th></tr>
+          </thead>
+          <tbody id="incomeTbody"></tbody>
+        </table>
+      </div>
+    </div>
   </div>
 
   <script>
@@ -278,6 +330,7 @@
       pie: null,
       txs: [],
       sales: [],
+      incomes: [],
       paypal: 0,
       budget: 0,
       recommendations: {},
@@ -405,11 +458,13 @@
       try {
         STATE.txs = JSON.parse(localStorage.getItem('crypto_v5_txs') || '[]');
         STATE.sales = JSON.parse(localStorage.getItem('crypto_v5_sales') || '[]');
+        STATE.incomes = JSON.parse(localStorage.getItem('crypto_v5_incomes') || '[]');
         STATE.paypal = parseFloat(localStorage.getItem('crypto_v5_paypal') || '0') || 0;
         STATE.budget = parseFloat(localStorage.getItem('crypto_v5_budget') || '0') || 0;
       } catch {
         STATE.txs = [];
         STATE.sales = [];
+        STATE.incomes = [];
         STATE.paypal = 0;
         STATE.budget = 0;
       }
@@ -417,12 +472,14 @@
       $('#budgetInput').value = STATE.budget || '';
       renderTx();
       renderSales();
+      renderIncomes();
       renderBudget();
     }
 
     function saveLS() {
       localStorage.setItem('crypto_v5_txs', JSON.stringify(STATE.txs));
       localStorage.setItem('crypto_v5_sales', JSON.stringify(STATE.sales));
+      localStorage.setItem('crypto_v5_incomes', JSON.stringify(STATE.incomes));
       localStorage.setItem('crypto_v5_paypal', STATE.paypal);
       localStorage.setItem('crypto_v5_budget', STATE.budget);
     }
@@ -495,6 +552,31 @@
       });
     }
 
+    function renderIncomes() {
+      const tb = $('#incomeTbody');
+      if (!STATE.incomes.length) {
+        tb.innerHTML = '<tr><td colspan="5" class="muted small" style="text-align:center;">Sin ingresos registrados</td></tr>';
+        return;
+      }
+      const fragment = document.createDocumentFragment();
+      STATE.incomes.forEach((i, idx) => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `<td>${i.date}</td><td>${i.category}</td><td>${fmt(i.amount, STATE.currency)}</td><td>${i.description || '—'}</td><td><button class="btn small" data-i="${idx}" aria-label="Eliminar ingreso">🗑</button></td>`;
+        fragment.appendChild(tr);
+      });
+      tb.innerHTML = '';
+      tb.appendChild(fragment);
+      tb.querySelectorAll('button').forEach(b => {
+        b.onclick = () => {
+          const income = STATE.incomes.splice(b.dataset.i, 1)[0];
+          STATE.paypal -= income.amount;
+          saveLS();
+          renderIncomes();
+          updateTotals();
+        };
+      });
+    }
+
     function calculateGainLoss(coin, qty, salePrice, commission) {
       let totalQty = 0, totalCost = 0;
       STATE.txs.forEach(t => {
@@ -512,9 +594,12 @@
 
     function updateTotals() {
       const pieMode = document.querySelector('input[name="pieMode"]:checked').value;
-      const sumInvEl = $('#sumInvested'), sumCurEl = $('#sumCurrent'), sumPnLEl = $('#sumPnL'), coinSummary = $('#coinSummary');
+      const sumInvEl = $('#sumInvested'), sumCurEl = $('#sumCurrent'), sumPnLEl = $('#sumPnL');
+      const sumIncomesEl = $('#sumIncomes'), sumPaypalEl = $('#sumPaypal'), sumTotalEl = $('#sumTotal');
+      const sumInvPill = $('#sumInvestedPill'), sumCurPill = $('#sumCurrentPill'), sumPnLPill = $('#sumPnLPill');
+      const coinSummary = $('#coinSummary');
       
-      let invested = 0, current = 0, totalCommission = 0;
+      let invested = 0, current = 0, totalCommission = 0, totalIncomes = 0;
       const coinData = { BTC: { inv: 0, cur: 0, com: 0, qty: 0 }, ETH: { inv: 0, cur: 0, com: 0, qty: 0 }, SOL: { inv: 0, cur: 0, com: 0, qty: 0 } };
       
       STATE.txs.forEach(t => {
@@ -537,13 +622,26 @@
         current += coinData[sym].cur;
       });
       
+      STATE.incomes.forEach(i => {
+        totalIncomes += i.amount;
+      });
+      
       const pnl = current - invested - totalCommission;
       const pnlPct = invested ? (pnl / invested) * 100 : 0;
+      const totalAssets = current + STATE.paypal;
       
       sumInvEl.textContent = fmt(invested, STATE.currency);
-      sumCurEl.textContent = fmt(current + STATE.paypal, STATE.currency);
+      sumCurEl.textContent = fmt(current, STATE.currency);
       sumPnLEl.textContent = `${pnl >= 0 ? '+' : ''}${fmt(pnl, STATE.currency)} (${pnlPct.toFixed(1)}%)`;
       sumPnLEl.style.color = pnl >= 0 ? 'var(--ok)' : 'var(--bad)';
+      sumIncomesEl.textContent = fmt(totalIncomes, STATE.currency);
+      sumPaypalEl.textContent = fmt(STATE.paypal, STATE.currency);
+      sumTotalEl.textContent = fmt(totalAssets, STATE.currency);
+      
+      sumInvPill.textContent = fmt(invested, STATE.currency);
+      sumCurPill.textContent = fmt(current, STATE.currency);
+      sumPnLPill.textContent = `${pnl >= 0 ? '+' : ''}${fmt(pnl, STATE.currency)} (${pnlPct.toFixed(1)}%)`;
+      sumPnLPill.style.color = pnl >= 0 ? 'var(--ok)' : 'var(--bad)';
       
       coinSummary.innerHTML = '';
       Object.keys(coinData).forEach(sym => {
@@ -609,7 +707,7 @@
       if (!r) return;
       const c = COINS.find(x => x.id === r.dataset.coin);
       STATE.currentCoinId = c.id;
-      STATE.currentCoinName = c Sym;
+      STATE.currentCoinName = c.sym;
       showChart(c.id, c.sym);
     });
     $('#rango').addEventListener('change', () => {
@@ -653,26 +751,28 @@
         try {
           const text = await file.text();
           const imported = JSON.parse(text);
-          if (!imported.txs || !Array.isArray(imported.txs) || !imported.sales || !Array.isArray(imported.sales)) throw new Error('Formato inválido');
+          if (!imported.txs || !Array.isArray(imported.txs) || !imported.sales || !Array.isArray(imported.sales) || !imported.incomes || !Array.isArray(imported.incomes)) throw new Error('Formato inválido');
           STATE.txs = imported.txs.filter(t => t.coin && t.date && t.usd && validateDate(t.date) && t.usd > 0);
           STATE.sales = imported.sales.filter(s => s.coin && s.date && s.qty > 0 && s.usd > 0 && s.salePrice > 0 && validateDate(s.date));
+          STATE.incomes = imported.incomes.filter(i => i.category && i.date && i.amount > 0 && validateDate(i.date));
           saveLS();
           renderTx();
           renderSales();
+          renderIncomes();
           updateTotals();
-          alert('Transacciones y ventas importadas correctamente.');
+          alert('Transacciones, ventas e ingresos importados correctamente.');
         } catch (e) {
-          $('#txError').textContent = 'Error al importar el archivo. Asegúrate de que sea un JSON válido con "txs" y "sales".';
+          $('#txError').textContent = 'Error al importar el archivo. Asegúrate de que sea un JSON válido con "txs", "sales" e "incomes".';
         }
       };
       input.click();
     };
     $('#btnExport').onclick = () => {
-      if (!STATE.txs.length && !STATE.sales.length) {
-        alert('No hay transacciones ni ventas que exportar.');
+      if (!STATE.txs.length && !STATE.sales.length && !STATE.incomes.length) {
+        alert('No hay transacciones, ventas ni ingresos que exportar.');
         return;
       }
-      const data = { txs: STATE.txs, sales: STATE.sales };
+      const data = { txs: STATE.txs, sales: STATE.sales, incomes: STATE.incomes };
       const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(data, null, 2));
       const link = document.createElement('a');
       link.setAttribute('href', dataStr);
@@ -685,11 +785,13 @@
       if (!confirm('¿Borrar todo?')) return;
       STATE.txs = [];
       STATE.sales = [];
+      STATE.incomes = [];
       STATE.paypal = 0;
       STATE.budget = 0;
       localStorage.clear();
       renderTx();
       renderSales();
+      renderIncomes();
       renderBudget();
       $('#paypalBalance').value = '';
       $('#budgetInput').value = '';
@@ -752,6 +854,29 @@
       renderSales();
       updateTotals();
     };
+    $('#btnAddIncome').onclick = () => {
+      const category = $('#incomeCategory').value;
+      const date = $('#incomeDate').value;
+      const amount = parseFloat($('#incomeAmount').value) || 0;
+      const description = $('#incomeDescription').value.trim();
+      
+      if (!category || !date || amount <= 0 || !validateDate(date)) {
+        $('#incomeError').textContent = 'Completa todos los campos correctamente (fecha no futura, monto positivo).';
+        return;
+      }
+      
+      $('#incomeError').textContent = '';
+      STATE.incomes.unshift({ category, date, amount, description });
+      STATE.paypal += amount;
+      $('#paypalBalance').value = STATE.paypal.toFixed(2);
+      
+      $('#incomeAmount').value = '';
+      $('#incomeDescription').value = '';
+      
+      saveLS();
+      renderIncomes();
+      updateTotals();
+    };
     $('#btnRefresh').onclick = async () => {
       await fetchPrices();
       await analyze90d();
@@ -763,12 +888,14 @@
     (async function init() {
       $('#txDate').max = new Date().toISOString().split('T')[0];
       $('#saleDate').max = new Date().toISOString().split('T')[0];
+      $('#incomeDate').max = new Date().toISOString().split('T')[0];
       loadLS();
       await fetchPrices();
       await analyze90d();
       updateTotals();
       renderBudget();
       renderSales();
+      renderIncomes();
       setInterval(async () => {
         await fetchPrices();
         updateTotals();
