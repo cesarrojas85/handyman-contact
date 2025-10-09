@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Handyman Contact</title>
+  <title>HandyGo Services</title>
 
   <!-- Íconos FontAwesome -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
@@ -21,7 +21,7 @@
       min-height: 100vh;
       margin: 0;
       padding: 0;
-      background-color: #4B0000; /* Vino tinto */
+      background-color: #4B0000;
       color: white;
       text-align: center;
     }
@@ -62,12 +62,11 @@
       top: 50%;
       transform: translateY(-50%);
       text-align: left;
-      z-index: 2; /* encima del overlay */
+      z-index: 2;
       pointer-events: none;
       max-width: 60%;
     }
 
-    /* Nombre de la marca */
     .brand-name {
       font-family: 'Orbitron', sans-serif;
       font-weight: 700;
@@ -82,7 +81,6 @@
       animation: fadeSlideIn 1s ease forwards;
     }
 
-    /* Slogan */
     .slogan {
       font-family: 'Poppins', sans-serif;
       font-weight: 400;
@@ -96,13 +94,11 @@
       animation-delay: 0.6s;
     }
 
-    /* Animación */
     @keyframes fadeSlideIn {
       0% { opacity: 0; transform: translateY(20px); }
       100% { opacity: 1; transform: translateY(0); }
     }
 
-    /* Logo a la derecha */
     .logo-banner {
       position: relative;
       width: 140px;
@@ -117,6 +113,45 @@
     .logo-banner:hover {
       transform: scale(1.05);
       filter: drop-shadow(3px 3px 8px rgba(255,215,0,0.8));
+    }
+
+    /* 🔘 Botón de idioma flotante con animación */
+    .lang-toggle {
+      position: fixed;
+      top: 15px;
+      right: 15px;
+      z-index: 1000;
+      background: rgba(255, 255, 255, 0.15);
+      backdrop-filter: blur(6px);
+      border: 1px solid rgba(255,255,255,0.4);
+      border-radius: 30px;
+      padding: 8px 14px;
+      cursor: pointer;
+      color: white;
+      font-weight: bold;
+      font-size: 16px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.3s ease;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+      opacity: 0;
+      animation: fadeInLang 1s ease forwards 0.5s, pulse 2.5s infinite 2s;
+    }
+
+    @keyframes fadeInLang {
+      from { opacity: 0; transform: scale(0.8); }
+      to { opacity: 1; transform: scale(1); }
+    }
+
+    @keyframes pulse {
+      0%, 100% { box-shadow: 0 0 8px rgba(255,215,0,0.3); }
+      50% { box-shadow: 0 0 16px rgba(255,215,0,0.7); }
+    }
+
+    .lang-toggle:hover {
+      background: rgba(255, 215, 0, 0.35);
+      transform: scale(1.05);
     }
 
     h1 {
@@ -147,7 +182,7 @@
     .sms  { background-color: #1E90FF; }
     .whatsapp { background-color: #25D366; }
 
-    /* ✅ Ajustes móviles */
+    /* Responsivo */
     @media (max-width: 480px) {
       .banner {
         height: 220px;
@@ -180,37 +215,89 @@
         font-size: 13px;
         line-height: 1.3;
       }
+
+      .lang-toggle {
+        top: 10px;
+        right: 10px;
+        font-size: 14px;
+        padding: 6px 12px;
+      }
     }
   </style>
 </head>
 
 <body>
+  <!-- Botón de cambio de idioma (flotante animado) -->
+  <div class="lang-toggle" id="lang-toggle">🇺🇸 EN</div>
+
   <!-- Banner superior -->
   <div class="banner">
     <img src="images/Logo.png" alt="Logo HandyGo Services" class="logo-banner">
 
     <div class="banner-text">
-      <div class="brand-name">HandyGo Services</div>
-      <div class="slogan">Your home in good hands, at a fair price</div>
+      <div class="brand-name" id="brand-name">HandyGo Services</div>
+      <div class="slogan" id="slogan">Your home in good hands, at a fair price</div>
     </div>
   </div>
 
-  <h1>Cesar Rojas</h1>
+  <h1 id="name">Cesar Rojas</h1>
 
-  <a class="contact-btn services" href="Services.html">
+  <a class="contact-btn services" id="services-btn" href="Services.html">
     <i class="fas fa-tools"></i> Services
   </a>
   
-  <a class="contact-btn call" href="tel:+19362197937">
+  <a class="contact-btn call" id="call-btn" href="tel:+19362197937">
     <i class="fas fa-phone"></i> Call
   </a>
 
-  <a class="contact-btn sms" href="sms:+19362197937?body=Hello%20Cesar">
+  <a class="contact-btn sms" id="sms-btn" href="sms:+19362197937?body=Hello%20Cesar">
     <i class="fas fa-sms"></i> Text
   </a>
 
-  <a class="contact-btn whatsapp" href="https://wa.me/19362197937" target="_blank">
+  <a class="contact-btn whatsapp" id="whatsapp-btn" href="https://wa.me/19362197937" target="_blank">
     <i class="fab fa-whatsapp"></i> WhatsApp
   </a>
+
+  <!-- 🌐 Script bilingüe con guardado de preferencia -->
+  <script>
+    const texts = {
+      en: {
+        slogan: "Your home in good hands, at a fair price",
+        services: '<i class="fas fa-tools"></i> Services',
+        call: '<i class="fas fa-phone"></i> Call',
+        sms: '<i class="fas fa-sms"></i> Text',
+        whatsapp: '<i class="fab fa-whatsapp"></i> WhatsApp',
+        lang: "🇺🇸 EN"
+      },
+      es: {
+        slogan: "Tu hogar en buenas manos, a un precio justo",
+        services: '<i class="fas fa-tools"></i> Servicios',
+        call: '<i class="fas fa-phone"></i> Llamar',
+        sms: '<i class="fas fa-sms"></i> Mensaje',
+        whatsapp: '<i class="fab fa-whatsapp"></i> WhatsApp',
+        lang: "🇲🇽 ES"
+      }
+    };
+
+    let currentLang = localStorage.getItem('preferredLang') || 
+                      (navigator.language.startsWith('es') ? 'es' : 'en');
+
+    const applyLanguage = (lang) => {
+      document.getElementById('slogan').textContent = texts[lang].slogan;
+      document.getElementById('services-btn').innerHTML = texts[lang].services;
+      document.getElementById('call-btn').innerHTML = texts[lang].call;
+      document.getElementById('sms-btn').innerHTML = texts[lang].sms;
+      document.getElementById('whatsapp-btn').innerHTML = texts[lang].whatsapp;
+      document.getElementById('lang-toggle').innerHTML = texts[lang].lang;
+    };
+
+    applyLanguage(currentLang);
+
+    document.getElementById('lang-toggle').addEventListener('click', () => {
+      currentLang = currentLang === 'en' ? 'es' : 'en';
+      localStorage.setItem('preferredLang', currentLang);
+      applyLanguage(currentLang);
+    });
+  </script>
 </body>
 </html>
