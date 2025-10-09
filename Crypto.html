@@ -74,7 +74,7 @@ tr:hover{background:#2a2a2a}
 </div>
 
 <div class="wrap">
-  <!-- IZQUIERDA: PRECIOS -->
+  <!-- IZQUIERDA -->
   <div class="card" id="pricesCard">
     <h2>Precios, Recomendación (90d) y Tendencia</h2>
     <div class="body">
@@ -107,21 +107,31 @@ tr:hover{background:#2a2a2a}
     </div>
   </div>
 
-  <!-- DERECHA: PORTAFOLIO -->
+  <!-- DERECHA -->
   <div class="card" id="portfolioCard">
     <h2>
       Portafolio (compras manuales + saldo PayPal)
       <span style="float:right; font-size:0.8rem; color:var(--muted);">
-        Mostrar distribución por:
-        <label style="cursor:pointer;">
-          <input type="radio" name="pieMode" value="inv" checked> Invertido
-        </label>
-        <label style="cursor:pointer; margin-left:8px;">
-          <input type="radio" name="pieMode" value="cur"> Valor actual
-        </label>
+        Mostrar por:
+        <label><input type="radio" name="pieMode" value="inv" checked> Invertido</label>
+        <label style="margin-left:8px;"><input type="radio" name="pieMode" value="cur"> Valor actual</label>
       </span>
     </h2>
     <div class="body">
+
+      <!-- Pie chart al inicio -->
+      <div style="margin-bottom:20px;">
+        <h3 class="small muted" id="pieTitle" style="margin-bottom:8px;">Distribución del Portafolio (por inversión)</h3>
+        <canvas id="pieCanvas"></canvas>
+
+        <!-- Resumen rápido -->
+        <div id="coinQuickSummary" style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:12px;">
+          <div class="pill"><div class="lab">BTC Invertido</div><div class="val" id="sumBTC">$0.00</div></div>
+          <div class="pill"><div class="lab">ETH Invertido</div><div class="val" id="sumETH">$0.00</div></div>
+          <div class="pill"><div class="lab">SOL Invertido</div><div class="val" id="sumSOL">$0.00</div></div>
+        </div>
+      </div>
+
       <div class="grid2">
         <div>
           <div class="muted small">Saldo PayPal</div>
@@ -172,12 +182,6 @@ tr:hover{background:#2a2a2a}
           <thead><tr><th>Moneda</th><th>Invertido</th><th>Actual</th><th>P/L</th></tr></thead>
           <tbody id="coinSummary"></tbody>
         </table>
-
-        <!-- PIE CHART -->
-        <div style="margin-top:20px">
-          <h3 class="small muted" id="pieTitle" style="margin-bottom:8px;">Distribución del Portafolio (por inversión)</h3>
-          <canvas id="pieCanvas"></canvas>
-        </div>
       </div>
     </div>
   </div>
@@ -271,6 +275,12 @@ function updateTotals(){
   if(!STATE.txs.length){sumInvEl.textContent='$0.00';sumCurEl.textContent='$0.00';sumPnLEl.textContent='$0.00';coinSummary.innerHTML='';if(STATE.pie)STATE.pie.destroy();return;}
   let invested=0,current=0;const coinData={BTC:{inv:0,cur:0},ETH:{inv:0,cur:0},SOL:{inv:0,cur:0}};
   STATE.txs.forEach(t=>{const now=STATE.prices[t.coin];invested+=t.usd;const value=(now*t.usd)/t.buyPrice;current+=value;coinData[t.coin].inv+=t.usd;coinData[t.coin].cur+=value;});
+  
+  // 🔹 Actualiza resumen rápido superior
+  $('#sumBTC').textContent = `$${fmt(coinData.BTC.inv)}`;
+  $('#sumETH').textContent = `$${fmt(coinData.ETH.inv)}`;
+  $('#sumSOL').textContent = `$${fmt(coinData.SOL.inv)}`;
+
   const pnl=current-invested;const pnlPct=(pnl/invested)*100;
   sumInvEl.textContent=`$${fmt(invested)}`;sumCurEl.textContent=`$${fmt(current)}`;sumPnLEl.textContent=`${pnl>=0?'+':''}$${fmt(pnl)} (${pnlPct.toFixed(1)}%)`;sumPnLEl.style.color=pnl>=0?'var(--ok)':'var(--bad)';
   coinSummary.innerHTML='';
