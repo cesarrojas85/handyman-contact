@@ -134,14 +134,22 @@ const COINS=[{id:'bitcoin',sym:'BTC',el:'#btc'},{id:'ethereum',sym:'ETH',el:'#et
 
 async function fetchPrices(){
   const ids=COINS.map(c=>c.id).join(',');
-  const r=await fetch(`https://api.coingecko.com/api/v3/simple/price?ids=${ids}&vs_currencies=usd`);
-  const d=await r.json();
-  STATE.prices={BTC:d.bitcoin.usd,ETH:d.ethereum.usd,SOL:d.solana.usd};
-  COINS.forEach(c=>$(c.el).textContent=`$${fmt(STATE.prices[c.sym])}`);
-  $('#hora').textContent='Actualizado: '+new Date().toLocaleTimeString();
+  const api=`https://api.coingecko.com/api/v3/simple/price?ids=${ids}&vs_currencies=usd`;
+  const proxy=`https://api.allorigins.win/raw?url=${encodeURIComponent(api)}`;
+  try {
+    const r=await fetch(proxy);
+    const d=await r.json();
+    STATE.prices={BTC:d.bitcoin.usd,ETH:d.ethereum.usd,SOL:d.solana.usd};
+    COINS.forEach(c=>$(c.el).textContent=`$${fmt(STATE.prices[c.sym])}`);
+    $('#hora').textContent='Actualizado: '+new Date().toLocaleTimeString();
+  } catch(e) {
+    console.error("Error al obtener precios:", e);
+  }
 }
+
 function saveLS(){localStorage.setItem('crypto_v7_txs',JSON.stringify(STATE.txs));}
 function loadLS(){STATE.txs=JSON.parse(localStorage.getItem('crypto_v7_txs')||'[]');renderTx();}
+
 function renderTx(){
   const tb=$('#txTbody');tb.innerHTML='';
   STATE.txs.forEach((t,i)=>{
@@ -166,6 +174,7 @@ function renderTx(){
   });
   updateTotals();
 }
+
 function updateTotals(){
   let inv=0,cur=0;
   const coins={BTC:{inv:0,cur:0},ETH:{inv:0,cur:0},SOL:{inv:0,cur:0}};
