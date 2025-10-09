@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Handyman Contact</title>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700&display=swap" rel="stylesheet">
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -44,18 +45,21 @@
     /* Si prefieres que el banner siga usando una <img>, hay otra solución
        —pero la de fondo + flex es la más robusta. */
 
-    .banner-text {
-      position: absolute;    /* texto independiente, sigue en la izquierda */
-      left: 20px;
-      top: 50%;
-      transform: translateY(-50%);
-      color: #FFD700;
-      font-weight: bold;
-      text-shadow: 2px 2px 6px rgba(0,0,0,0.6);
-      font-size: clamp(18px, 5vw, 38px);
-      z-index: 3;
-      pointer-events: none;
-    }
+   .banner-text {
+  position: absolute;
+  left: 20px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #FFD700;
+  font-family: 'Orbitron', sans-serif;   /* ✅ Fuente tipo Eurostile */
+  font-weight: 700;
+  letter-spacing: 1px;                   /* Espaciado entre letras */
+  text-transform: uppercase;             /* MAYÚSCULAS */
+  text-shadow: 2px 2px 6px rgba(0,0,0,0.6);
+  font-size: clamp(18px, 5vw, 38px);
+  z-index: 3;
+  pointer-events: none;
+}
 
     /* Logo alineado a la derecha y centrado verticalmente (gracias a flex) */
     .logo-banner {
