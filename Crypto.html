@@ -1,11 +1,11 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Crypto Dashboard v2 — Órden y Grupos por Fecha</title>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Crypto Dashboard v4 — Distribución y P/L</title>
 
-<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet" />
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/luxon@3"></script>
 <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-luxon@1"></script>
@@ -17,7 +17,7 @@
 }
 *{box-sizing:border-box}
 body{margin:0;font-family:'Poppins',sans-serif;background:var(--bg);color:#fff;}
-/* NAVBAR */
+/* NAV */
 .nav{display:flex;align-items:center;justify-content:space-between;padding:14px 18px;background:#0f0f0f;border-bottom:1px solid #222;}
 .brand{color:var(--gold);font-weight:600;letter-spacing:.5px}
 .meta{display:flex;align-items:center;gap:10px;color:var(--muted)}
@@ -41,10 +41,10 @@ tr:hover{background:#2a2a2a}
 .trend{font-weight:700}
 .trend.ok{color:var(--ok)} .trend.mid{color:var(--warn)} .trend.bad{color:var(--bad)}
 .last{color:var(--muted);font-size:.9rem;margin-top:8px}
-/* CHART */
+/* CHART HISTÓRICO */
 #chartPanel{margin-top:20px;border-top:1px solid #222;background:#1b1b1b;border-radius:0 0 12px 12px;padding-bottom:20px;}
-canvas{width:100%;height:380px;max-height:380px;}
-/* PORTAFOLIO */
+#grafCanvas{width:100%;max-height:380px}
+/* PORTAFOLIO (altura limitada con scroll) */
 #portfolioCard{max-height:calc(380px + 270px);overflow-y:auto;scrollbar-width:thin;scrollbar-color:var(--gold) #222;}
 #portfolioCard::-webkit-scrollbar{width:8px}
 #portfolioCard::-webkit-scrollbar-thumb{background-color:var(--gold);border-radius:10px}
@@ -62,13 +62,16 @@ canvas{width:100%;height:380px;max-height:380px;}
 .small{font-size:.86rem}
 .muted{color:var(--muted2)}
 .group-header{background:#222;color:var(--gold);font-weight:600;text-align:center;padding:6px 0;border-top:1px solid #333}
+.sub-summary{margin-top:16px;border-top:1px solid #333;padding-top:10px}
+.sub-summary table td, .sub-summary table th{font-size:.9rem;}
+#pieCanvas{max-height:240px}
 </style>
 </head>
 <body>
 
 <!-- NAV -->
 <div class="nav">
-  <div class="brand">Crypto Dashboard v2</div>
+  <div class="brand">Crypto Dashboard v4</div>
   <div class="meta">
     <span id="lastUpdate" class="small">—</span>
     <button id="btnRefresh" class="btn">🔄 Actualizar</button>
@@ -76,12 +79,14 @@ canvas{width:100%;height:380px;max-height:380px;}
 </div>
 
 <div class="wrap">
-  <!-- IZQUIERDA: PRECIOS + GRAFICO -->
+  <!-- IZQUIERDA: PRECIOS + GRÁFICO -->
   <div class="card" id="pricesCard">
     <h2>Precios, Recomendación (90d) y Tendencia</h2>
     <div class="body">
       <table id="tabla">
-        <thead><tr><th>Criptomoneda</th><th>Precio (USD)</th><th>% Recomendado</th><th>Tendencia</th></tr></thead>
+        <thead>
+          <tr><th>Criptomoneda</th><th>Precio (USD)</th><th>% Recomendado</th><th>Tendencia</th></tr>
+        </thead>
         <tbody>
           <tr data-coin="bitcoin"><td class="coin">Bitcoin (BTC)</td><td id="btc" class="price">—</td><td id="btc-reco" class="reco">—</td><td id="btc-trend" class="trend">—</td></tr>
           <tr data-coin="ethereum"><td class="coin">Ethereum (ETH)</td><td id="eth" class="price">—</td><td id="eth-reco" class="reco">—</td><td id="eth-trend" class="trend">—</td></tr>
@@ -91,7 +96,7 @@ canvas{width:100%;height:380px;max-height:380px;}
       <div class="last" id="hora">Última actualización: —</div>
     </div>
 
-    <!-- GRAFICO -->
+    <!-- GRÁFICO HISTÓRICO -->
     <div id="chartPanel">
       <h2 id="titulo">Histórico</h2>
       <div class="body">
@@ -116,7 +121,7 @@ canvas{width:100%;height:380px;max-height:380px;}
       <div class="grid2">
         <div>
           <div class="muted small">Saldo PayPal</div>
-          <input id="paypalBalance" class="input" type="number" step="0.01" placeholder="Ej. 1200.00">
+          <input id="paypalBalance" class="input" type="number" step="0.01" placeholder="Ej. 1200.00" />
         </div>
         <div class="row" style="justify-content:flex-end;gap:10px">
           <button id="btnSavePayPal" class="btn">💾 Guardar</button>
@@ -131,68 +136,300 @@ canvas{width:100%;height:380px;max-height:380px;}
       </div>
 
       <div class="grid2" style="margin-top:14px">
-        <div><label class="small muted">Moneda</label>
-          <select id="txCoin" class="select"><option value="BTC">BTC</option><option value="ETH">ETH</option><option value="SOL">SOL</option></select></div>
-        <div><label class="small muted">Fecha</label><input id="txDate" class="input" type="date"></div>
-        <div><label class="small muted">Monto USD</label><input id="txUsd" class="input" type="number" step="0.01" placeholder="Ej. 250.00"></div>
-        <div class="row" style="align-items:end;justify-content:flex-end"><button id="btnAddTx" class="btn">➕ Agregar</button></div>
+        <div>
+          <label class="small muted">Moneda</label>
+          <select id="txCoin" class="select">
+            <option value="BTC">BTC</option>
+            <option value="ETH">ETH</option>
+            <option value="SOL">SOL</option>
+          </select>
+        </div>
+        <div>
+          <label class="small muted">Fecha</label>
+          <input id="txDate" class="input" type="date" />
+        </div>
+        <div>
+          <label class="small muted">Monto USD</label>
+          <input id="txUsd" class="input" type="number" step="0.01" placeholder="Ej. 250.00" />
+        </div>
+        <div class="row" style="align-items:end;justify-content:flex-end">
+          <button id="btnAddTx" class="btn">➕ Agregar</button>
+        </div>
       </div>
 
       <table class="table-mini" id="txTable">
-        <thead><tr><th>Fecha</th><th>Moneda</th><th>Monto USD</th><th></th></tr></thead>
+        <thead><tr><th>Fecha</th><th>Moneda</th><th>Monto USD</th><th>Precio Compra</th><th></th></tr></thead>
         <tbody id="txTbody"></tbody>
       </table>
+
+      <div class="sub-summary">
+        <h3 class="small muted" style="margin-bottom:8px;">Resumen por moneda</h3>
+        <table class="table-mini">
+          <thead><tr><th>Moneda</th><th>Invertido</th><th>Actual</th><th>P/L</th></tr></thead>
+        </table>
+        <table class="table-mini">
+          <tbody id="coinSummary"></tbody>
+        </table>
+
+        <!-- PIE CHART -->
+        <div style="margin-top:20px">
+          <h3 class="small muted" style="margin-bottom:8px;">Distribución del Portafolio</h3>
+          <canvas id="pieCanvas"></canvas>
+        </div>
+      </div>
     </div>
   </div>
 </div>
 
 <script>
-const $=s=>document.querySelector(s);const fmt=n=>isFinite(n)?n.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2}):'—';
-const COINS=[{id:'bitcoin',sym:'BTC',priceEl:'#btc',recoEl:'#btc-reco',trendEl:'#btc-trend'},{id:'ethereum',sym:'ETH',priceEl:'#eth',recoEl:'#eth-reco',trendEl:'#eth-trend'},{id:'solana',sym:'SOL',priceEl:'#sol',recoEl:'#sol-reco',trendEl:'#sol-trend'}];
-let STATE={prices:{},chart:null,txs:[],paypal:0};
+/* ===== Utilidades ===== */
+const $ = s => document.querySelector(s);
+const fmt = n => isFinite(n) ? n.toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2}) : '—';
 
-/* === FUNCIONES PRINCIPALES === */
-async function fetchPrices(){const ids=COINS.map(c=>c.id).join(',');const res=await fetch(`https://api.coingecko.com/api/v3/simple/price?ids=${ids}&vs_currencies=usd`);const d=await res.json();
-STATE.prices={BTC:d.bitcoin.usd,ETH:d.ethereum.usd,SOL:d.solana.usd};
-COINS.forEach(c=>$(c.priceEl).textContent=`$${fmt(STATE.prices[c.sym])}`);$('#hora').textContent='Última actualización: '+new Date().toLocaleTimeString();$('#lastUpdate').textContent=$('#hora').textContent;}
-async function fetchHistory(id,days){const r=await fetch(`https://api.coingecko.com/api/v3/coins/${id}/market_chart?vs_currency=usd&days=${days}`);return r.json();}
-async function analyze90d(){const out=await Promise.all(COINS.map(c=>fetchHistory(c.id,90)));const stats=out.map(d=>{const p=d.prices.map(x=>x[1]);const start=p[0],end=p[p.length-1];const ret=(end-start)/start;const m=p.reduce((a,b)=>a+b,0)/p.length;const v=p.reduce((a,b)=>a+(b-m)**2,0)/p.length;const vol=Math.sqrt(v)/m;const sma7=p.slice(-7).reduce((a,b)=>a+b,0)/7;const sma30=p.slice(-30).reduce((a,b)=>a+b,0)/30;let trend='🟡 Neutra',cls='mid';if(sma7>sma30*1.02){trend='🟢 Alcista';cls='ok';}else if(sma7<sma30*0.98){trend='🔴 Bajista';cls='bad';}return{ret,vol,trend,cls};});
-const scores=stats.map(s=>s.ret/s.vol);const total=scores.reduce((a,b)=>a+b,0);const pct=scores.map(s=>s/total*100);
-COINS.forEach((c,i)=>{$(c.recoEl).textContent=`${pct[i].toFixed(1)}%`;const el=$(c.trendEl);el.textContent=stats[i].trend;el.className=`trend ${stats[i].cls}`;});}
-async function showChart(id,name){$('#titulo').textContent=`Histórico de ${name}`;const days=$('#rango').value;const d=await fetchHistory(id,days);const pts=d.prices.map(p=>({x:p[0],y:p[1]}));if(STATE.chart)STATE.chart.destroy();STATE.chart=new Chart($('#grafCanvas').getContext('2d'),{type:'line',data:{datasets:[{label:'Precio USD',data:pts,borderColor:'#ffcc00',backgroundColor:'rgba(255,204,0,.18)',fill:true,tension:.3,pointRadius:0}]},options:{scales:{x:{type:'time',time:{unit:days>90?'month':(days>30?'week':'day')},ticks:{color:'#fff'},grid:{color:'#333'}},y:{ticks:{color:'#fff'},grid:{color:'#333'}}},plugins:{legend:{labels:{color:'#fff'}}}}});}
+const COINS = [
+  { id:'bitcoin',  sym:'BTC', priceEl:'#btc', recoEl:'#btc-reco', trendEl:'#btc-trend' },
+  { id:'ethereum', sym:'ETH', priceEl:'#eth', recoEl:'#eth-reco', trendEl:'#eth-trend' },
+  { id:'solana',   sym:'SOL', priceEl:'#sol', recoEl:'#sol-reco', trendEl:'#sol-trend' }
+];
 
-/* === PORTAFOLIO === */
-function loadLS(){try{STATE.txs=JSON.parse(localStorage.getItem('crypto_v2_txs')||'[]');STATE.paypal=parseFloat(localStorage.getItem('crypto_v2_paypal')||'0')||0;}catch{STATE.txs=[];STATE.paypal=0;}$('#paypalBalance').value=STATE.paypal||'';renderTx();}
-function saveLS(){localStorage.setItem('crypto_v2_txs',JSON.stringify(STATE.txs));}
-function renderTx(){const tb=$('#txTbody');tb.innerHTML='';if(STATE.txs.length===0){tb.innerHTML='<tr><td colspan="4" class="muted small" style="text-align:center;">Sin compras registradas</td></tr>';updateTotals();return;}
-// ✅ Agrupar por fecha
-const grouped={};
-STATE.txs.forEach(t=>{if(!grouped[t.date])grouped[t.date]=[];grouped[t.date].push(t);});
-const dates=Object.keys(grouped).sort((a,b)=>new Date(b)-new Date(a)); // más recientes primero
-dates.forEach(date=>{
-const trHead=document.createElement('tr');
-trHead.innerHTML=`<td colspan="4" class="group-header">${new Date(date).toLocaleDateString('es-MX',{weekday:'long',year:'numeric',month:'long',day:'numeric'})}</td>`;
-tb.appendChild(trHead);
-grouped[date].forEach((t,i)=>{
-const tr=document.createElement('tr');
-tr.innerHTML=`<td>${t.date}</td><td>${t.coin}</td><td>$${fmt(t.usd)}</td><td><button class="btn small" data-date="${t.date}" data-coin="${t.coin}" data-usd="${t.usd}">Quitar</button></td>`;
-tb.appendChild(tr);
-});
-});
-tb.querySelectorAll('button').forEach(b=>{
-b.onclick=()=>{STATE.txs=STATE.txs.filter(x=>!(x.date===b.dataset.date&&x.coin===b.dataset.coin&&x.usd==b.dataset.usd));saveLS();renderTx();};
-});
-updateTotals();}
-function updateTotals(){const inv=STATE.txs.reduce((a,b)=>a+(+b.usd||0),0);$('#sumInvested').textContent=`$${fmt(inv)}`;$('#sumCurrent').textContent=`$${fmt(inv)}`;$('#sumPnL').textContent='$0.00';}
+let STATE = { prices:{}, chart:null, pie:null, txs:[], paypal:0, currentCoinId:null, currentCoinName:null };
 
-/* === EVENTOS === */
-$('#tabla').onclick=e=>{const r=e.target.closest('tr[data-coin]');if(!r)return;const c=COINS.find(x=>x.id===r.dataset.coin);showChart(c.id,c.sym);};
-$('#rango').onchange=()=>{if(STATE.chart)showChart(COINS[0].id,COINS[0].sym);};
-$('#btnAddTx').onclick=()=>{const coin=$('#txCoin').value,date=$('#txDate').value,usd=parseFloat($('#txUsd').value);if(!coin||!date||!usd||usd<=0)return alert('Completa los datos.');STATE.txs.unshift({coin,date,usd});saveLS();renderTx();$('#txUsd').value='';};
-$('#btnSavePayPal').onclick=()=>{const v=parseFloat($('#paypalBalance').value)||0;STATE.paypal=v;localStorage.setItem('crypto_v2_paypal',v);alert('Saldo PayPal guardado.');};
-$('#btnClearAll').onclick=()=>{if(!confirm('¿Borrar todo?'))return;STATE.txs=[];STATE.paypal=0;localStorage.clear();renderTx();$('#paypalBalance').value='';};
-$('#btnRefresh').onclick=async()=>{await fetchPrices();await analyze90d();};
-(async function init(){loadLS();await fetchPrices();await analyze90d();setInterval(fetchPrices,300000);})();
+/* ===== Datos de mercado ===== */
+async function fetchPrices(){
+  const ids = COINS.map(c=>c.id).join(',');
+  const res = await fetch(`https://api.coingecko.com/api/v3/simple/price?ids=${ids}&vs_currencies=usd`);
+  const d = await res.json();
+  STATE.prices = { BTC:d.bitcoin.usd, ETH:d.ethereum.usd, SOL:d.solana.usd };
+  COINS.forEach(c => $(c.priceEl).textContent = `$${fmt(STATE.prices[c.sym])}`);
+  const ts = 'Última actualización: ' + new Date().toLocaleTimeString();
+  $('#hora').textContent = ts; $('#lastUpdate').textContent = ts;
+}
+
+async function fetchHistory(id, days){
+  const r = await fetch(`https://api.coingecko.com/api/v3/coins/${id}/market_chart?vs_currency=usd&days=${days}`);
+  return r.json();
+}
+
+async function analyze90d(){
+  const out = await Promise.all(COINS.map(c => fetchHistory(c.id, 90)));
+  const stats = out.map(d => {
+    const p = d.prices.map(x => x[1]);
+    const start = p[0], end = p[p.length-1];
+    const ret = (end - start) / start;
+    const m = p.reduce((a,b)=>a+b,0)/p.length;
+    const v = p.reduce((a,b)=>a+(b-m)**2,0)/p.length;
+    const vol = Math.sqrt(v)/m;
+    const sma7 = p.slice(-7).reduce((a,b)=>a+b,0)/7;
+    const sma30= p.slice(-30).reduce((a,b)=>a+b,0)/30;
+    let trend='🟡 Neutra', cls='mid';
+    if(sma7 > sma30*1.02){ trend='🟢 Alcista'; cls='ok'; }
+    else if(sma7 < sma30*0.98){ trend='🔴 Bajista'; cls='bad'; }
+    return { ret, vol, trend, cls };
+  });
+  const scores = stats.map(s => s.ret / s.vol);
+  const total  = scores.reduce((a,b)=>a+b,0);
+  const pct    = scores.map(s => s/total*100);
+  COINS.forEach((c,i) => {
+    $(c.recoEl).textContent = `${pct[i].toFixed(1)}%`;
+    const el = $(c.trendEl);
+    el.textContent = stats[i].trend;
+    el.className = `trend ${stats[i].cls}`;
+  });
+}
+
+/* ===== Gráfico histórico ===== */
+async function showChart(id, name){
+  $('#titulo').textContent = `Histórico de ${name}`;
+  const days = $('#rango').value;
+  const d = await fetchHistory(id, days);
+  const pts = d.prices.map(p => ({x:p[0], y:p[1]}));
+  if(STATE.chart) STATE.chart.destroy();
+  STATE.chart = new Chart($('#grafCanvas').getContext('2d'), {
+    type:'line',
+    data:{ datasets:[{ label:'Precio USD', data:pts, borderColor:'#ffcc00', backgroundColor:'rgba(255,204,0,.18)', fill:true, tension:.3, pointRadius:0 }]},
+    options:{
+      scales:{
+        x:{type:'time', time:{unit: days>90?'month':(days>30?'week':'day')}, ticks:{color:'#fff'}, grid:{color:'#333'}},
+        y:{ticks:{color:'#fff'}, grid:{color:'#333'}}
+      },
+      plugins:{legend:{labels:{color:'#fff'}}}
+    }
+  });
+}
+
+/* ===== Portafolio (LS con precio de compra) ===== */
+function loadLS(){
+  try{
+    STATE.txs   = JSON.parse(localStorage.getItem('crypto_v4_txs') || '[]');
+    STATE.paypal= parseFloat(localStorage.getItem('crypto_v4_paypal') || '0') || 0;
+  }catch{ STATE.txs=[]; STATE.paypal=0; }
+  $('#paypalBalance').value = STATE.paypal || '';
+  renderTx();
+}
+
+function saveLS(){ localStorage.setItem('crypto_v4_txs', JSON.stringify(STATE.txs)); }
+
+function renderTx(){
+  const tb = $('#txTbody');
+  tb.innerHTML = '';
+  if(STATE.txs.length === 0){
+    tb.innerHTML = '<tr><td colspan="5" class="muted small" style="text-align:center;">Sin compras registradas</td></tr>';
+    updateTotals();
+    return;
+  }
+  // Agrupar por fecha (más recientes primero)
+  const grouped = {};
+  STATE.txs.forEach(t => { if(!grouped[t.date]) grouped[t.date] = []; grouped[t.date].push(t); });
+  const dates = Object.keys(grouped).sort((a,b)=> new Date(b) - new Date(a));
+
+  dates.forEach(date => {
+    const trHead = document.createElement('tr');
+    trHead.innerHTML = `<td colspan="5" class="group-header">${new Date(date).toLocaleDateString('es-MX',{weekday:'long',year:'numeric',month:'long',day:'numeric'})}</td>`;
+    tb.appendChild(trHead);
+
+    grouped[date].forEach(t => {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td>${t.date}</td>
+        <td>${t.coin}</td>
+        <td>$${fmt(t.usd)}</td>
+        <td>$${fmt(t.buyPrice)}</td>
+        <td><button class="btn small" data-date="${t.date}" data-coin="${t.coin}" data-usd="${t.usd}">Quitar</button></td>
+      `;
+      tb.appendChild(tr);
+    });
+  });
+
+  tb.querySelectorAll('button').forEach(b => {
+    b.onclick = () => {
+      STATE.txs = STATE.txs.filter(x => !(x.date===b.dataset.date && x.coin===b.dataset.coin && x.usd==b.dataset.usd));
+      saveLS(); renderTx();
+    };
+  });
+
+  updateTotals();
+}
+
+function updateTotals(){
+  const sumInvEl = $('#sumInvested'), sumCurEl = $('#sumCurrent'), sumPnLEl = $('#sumPnL');
+  const coinSummary = $('#coinSummary');
+
+  if(!STATE.txs.length){
+    sumInvEl.textContent = '$0.00';
+    sumCurEl.textContent = '$0.00';
+    sumPnLEl.textContent = '$0.00';
+    coinSummary.innerHTML = '';
+    if(STATE.pie) STATE.pie.destroy();
+    return;
+  }
+
+  let invested = 0, current = 0;
+  const coinData = { BTC:{inv:0, cur:0}, ETH:{inv:0, cur:0}, SOL:{inv:0, cur:0} };
+
+  // Recorre compras y valora con precio actual
+  STATE.txs.forEach(t => {
+    const now = STATE.prices[t.coin] || 0;
+    invested += t.usd;
+    const value = now && t.buyPrice ? (now * t.usd) / t.buyPrice : t.usd; // protección divisiones
+    current += value;
+    coinData[t.coin].inv += t.usd;
+    coinData[t.coin].cur += value;
+  });
+
+  const pnl = current - invested;
+  const pnlPct = invested ? (pnl / invested) * 100 : 0;
+
+  sumInvEl.textContent = `$${fmt(invested)}`;
+  sumCurEl.textContent = `$${fmt(current)}`;
+  sumPnLEl.textContent = `${pnl>=0?'+':''}$${fmt(pnl)} (${pnlPct.toFixed(1)}%)`;
+  sumPnLEl.style.color = pnl>=0 ? 'var(--ok)' : 'var(--bad)';
+
+  // Resumen por moneda
+  coinSummary.innerHTML = '';
+  Object.keys(coinData).forEach(sym => {
+    const d = coinData[sym];
+    if(!d.inv) return;
+    const pl = d.cur - d.inv;
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td>${sym}</td>
+      <td>$${fmt(d.inv)}</td>
+      <td>$${fmt(d.cur)}</td>
+      <td style="color:${pl>=0?'var(--ok)':'var(--bad)'};">${pl>=0?'+':''}$${fmt(pl)}</td>
+    `;
+    coinSummary.appendChild(tr);
+  });
+
+  // Pie chart (distribución de inversión por moneda)
+  const labels = ['BTC','ETH','SOL'];
+  const dataInv = labels.map(s => coinData[s].inv);
+  if(STATE.pie) STATE.pie.destroy();
+  const ctx = $('#pieCanvas').getContext('2d');
+  STATE.pie = new Chart(ctx, {
+    type:'pie',
+    data:{
+      labels,
+      datasets:[{ data: dataInv }]
+    },
+    options:{
+      plugins:{ legend:{ labels:{ color:'#fff' } } }
+    }
+  });
+}
+
+/* ===== Eventos UI ===== */
+$('#tabla').addEventListener('click', e => {
+  const row = e.target.closest('tr[data-coin]'); if(!row) return;
+  const c = COINS.find(x => x.id === row.dataset.coin);
+  STATE.currentCoinId = c.id;
+  STATE.currentCoinName = c.sym;
+  showChart(c.id, c.sym);
+});
+$('#rango').addEventListener('change', () => {
+  if(STATE.currentCoinId) showChart(STATE.currentCoinId, STATE.currentCoinName);
+});
+
+$('#btnAddTx').onclick = () => {
+  const coin = $('#txCoin').value;
+  const date = $('#txDate').value;
+  const usd  = parseFloat($('#txUsd').value);
+  if(!coin || !date || !usd || usd<=0) return alert('Completa moneda, fecha y monto USD (>0).');
+  const buyPrice = STATE.prices[coin]; // precio real en el momento de registrar
+  STATE.txs.unshift({ coin, date, usd, buyPrice });
+  saveLS(); renderTx();
+  $('#txUsd').value = '';
+};
+
+$('#btnSavePayPal').onclick = () => {
+  const v = parseFloat($('#paypalBalance').value) || 0;
+  STATE.paypal = v;
+  localStorage.setItem('crypto_v4_paypal', String(v));
+  alert('Saldo PayPal guardado.');
+};
+
+$('#btnClearAll').onclick = () => {
+  if(!confirm('¿Borrar todo? Esto eliminará compras y saldo PayPal.')) return;
+  STATE.txs = []; STATE.paypal = 0;
+  localStorage.removeItem('crypto_v4_txs');
+  localStorage.removeItem('crypto_v4_paypal');
+  renderTx(); $('#paypalBalance').value = '';
+};
+
+$('#btnRefresh').onclick = async () => {
+  await fetchPrices();
+  await analyze90d();
+  updateTotals();
+};
+
+/* ===== Init ===== */
+(async function init(){
+  loadLS();
+  await fetchPrices();
+  await analyze90d();
+  updateTotals();
+  // refresco cada 5 min
+  setInterval(async () => { await fetchPrices(); updateTotals(); }, 300000);
+})();
 </script>
 </body>
 </html>
