@@ -4,8 +4,13 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Handyman Contact</title>
+
+  <!-- Íconos FontAwesome -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
-  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700&display=swap" rel="stylesheet">
+
+  <!-- Fuentes: Orbitron (nombre) y Poppins (slogan) -->
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700&family=Poppins:wght@400&display=swap" rel="stylesheet">
+
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -21,56 +26,79 @@
       text-align: center;
     }
 
-    /* Banner superior tipo portada (ahora con background-image) */
+    /* Banner superior */
     .banner {
       width: 100%;
-      height: 250px;               /* altura del banner */
+      height: 250px;
       overflow: hidden;
-      position: relative;          /* para el texto absoluto */
+      position: relative;
       margin-bottom: 20px;
-
-      /* uso de la imagen como fondo (más estable para layout) */
       background-image: url('images/san antonio skyview.jpg');
       background-position: center;
       background-size: cover;
       background-repeat: no-repeat;
-
-      /* flexbox para centrar verticalmente el logo y alinearlo a la derecha */
       display: flex;
-      align-items: center;        /* centra verticalmente a los hijos no absolutos */
-      justify-content: flex-end;  /* empuja el logo hacia la derecha */
-      padding-right: 20px;        /* separación del borde derecho */
+      align-items: center;
+      justify-content: flex-end;
+      padding-right: 20px;
     }
 
-    /* Si prefieres que el banner siga usando una <img>, hay otra solución
-       —pero la de fondo + flex es la más robusta. */
+    /* Contenedor del texto */
+    .banner-text {
+      position: absolute;
+      left: 20px;
+      top: 50%;
+      transform: translateY(-50%);
+      text-align: left;
+      z-index: 3;
+      pointer-events: none;
+    }
 
-   .banner-text {
-  position: absolute;
-  left: 20px;
-  top: 50%;
-  transform: translateY(-50%);
-  color: #FFD700;
-  font-family: 'Orbitron', sans-serif;   /* ✅ Fuente tipo Eurostile */
-  font-weight: 700;
-  letter-spacing: 1px;                   /* Espaciado entre letras */
-  text-transform: uppercase;             /* MAYÚSCULAS */
-  text-shadow: 2px 2px 6px rgba(0,0,0,0.6);
-  font-size: clamp(18px, 5vw, 38px);
-  z-index: 3;
-  pointer-events: none;
-}
+    /* Nombre de la marca */
+    .brand-name {
+      font-family: 'Orbitron', sans-serif;
+      font-weight: 700;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      color: #FFD700;
+      font-size: clamp(22px, 5vw, 38px);
+      text-shadow: 2px 2px 6px rgba(0,0,0,0.6);
+      margin-bottom: 8px;
+      opacity: 0;
+      transform: translateY(10px);
+      animation: fadeSlideIn 1s ease forwards;
+    }
 
-    /* Logo alineado a la derecha y centrado verticalmente (gracias a flex) */
+    /* Slogan con animación */
+    .slogan {
+      font-family: 'Poppins', sans-serif;
+      font-weight: 400;
+      color: #FFFFFF;
+      font-size: clamp(12px, 3vw, 18px);
+      text-shadow: 1px 1px 4px rgba(0,0,0,0.5);
+      letter-spacing: 0.5px;
+      opacity: 0;
+      transform: translateY(20px);
+      animation: fadeSlideIn 1s ease forwards;
+      animation-delay: 0.6s; /* Aparece medio segundo después del título */
+    }
+
+    /* Animación */
+    @keyframes fadeSlideIn {
+      0% { opacity: 0; transform: translateY(20px); }
+      100% { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Logo a la derecha */
     .logo-banner {
-      position: relative;   /* no absolute: es un hijo flex */
-      width: 140px;         /* tamaño del logo */
+      position: relative;
+      width: 140px;
       height: auto;
-      z-index: 4;           /* encima del fondo */
+      z-index: 4;
       filter: drop-shadow(2px 2px 6px rgba(0,0,0,0.5));
       transition: transform 0.25s ease, filter 0.25s ease;
       cursor: pointer;
-      margin-left: 10px;    /* espacio extra si quieres separarlo del borde */
+      margin-left: 10px;
     }
 
     .logo-banner:hover {
@@ -100,30 +128,33 @@
     }
 
     .contact-btn i { margin-right: 10px; }
-
     .contact-btn:hover { transform: translateY(-3px); opacity: 0.9; }
 
     .call { background-color: #000000; }
     .sms  { background-color: #1E90FF; }
     .whatsapp { background-color: #25D366; }
 
-    /* Ajustes para pantallas pequeñas */
+    /* Responsive */
     @media (max-width: 400px) {
       .contact-btn { width: 80%; font-size: 16px; }
       h1 { font-size: 20px; }
       .logo-banner { width: 90px; margin-left: 8px; }
       .banner { padding-right: 10px; height: 200px; }
+      .brand-name { font-size: 24px; }
+      .slogan { font-size: 14px; }
     }
   </style>
 </head>
+
 <body>
   <!-- Banner superior -->
   <div class="banner">
-    <!-- logo como elemento flex (centrado vertical, pegado a la derecha) -->
     <img src="images/Logo.png" alt="Logo HandyGo Services" class="logo-banner">
 
-    <!-- texto en la izquierda, sigue usando absolute para mantener posición -->
-    <div class="banner-text">HandyGo Services</div>
+    <div class="banner-text">
+      <div class="brand-name">HandyGo Services</div>
+      <div class="slogan">Your home in good hands, at a fair price</div>
+    </div>
   </div>
 
   <h1>Cesar Rojas</h1>
@@ -145,3 +176,4 @@
   </a>
 </body>
 </html>
+
