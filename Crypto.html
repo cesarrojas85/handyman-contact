@@ -51,7 +51,7 @@
     #portfolioCard { max-height: calc(380px + 300px); overflow-y: auto; scrollbar-width: thin; scrollbar-color: var(--gold) #222; }
     #portfolioCard::-webkit-scrollbar { width: 8px; }
     #portfolioCard::-webkit-scrollbar-thumb { background-color: var(--gold); border-radius: 10px; }
-    .grid2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 16px; }
+    .grid2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 16px; margin-bottom: 16px; }
     @media (max-width: 720px) { .grid2 { grid-template-columns: 1fr; } }
     .input, .select { width: 100%; background: #222; color: #fff; border: 1px solid #333; border-radius: 8px; padding: 9px 10px; }
     .tally { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-top: 12px; }
@@ -61,7 +61,8 @@
     .table-mini { width: 100%; border-collapse: collapse; margin-top: 12px; }
     .table-mini th { background: #232323; color: #ddd; }
     .table-mini td, .table-mini th { padding: 8px 12px; font-size: .92rem; }
-    .row { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+    .row { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; justify-content: flex-end; margin-top: 10px; }
+    @media (max-width: 600px) { .row { flex-direction: column; align-items: stretch; } .row .btn { width: 100%; text-align: center; } }
     .small { font-size: .86rem; }
     .muted { color: var(--muted2); }
     .group-header { background: #222; color: var(--gold); font-weight: 600; text-align: center; padding: 6px 0; border-top: 1px solid #333; }
@@ -169,13 +170,13 @@
             <div class="muted small">Saldo Cash</div>
             <input id="cashBalance" class="input" type="number" step="0.01" placeholder="Ej. 1000.00" aria-label="Saldo Cash en USD" />
           </div>
-          <div class="row" style="justify-content:flex-end;gap:10px">
-            <button id="btnSavePayPal" class="btn" aria-label="Guardar saldo PayPal">💾 Guardar PayPal</button>
-            <button id="btnSaveCash" class="btn" aria-label="Guardar saldo Cash">💾 Guardar Cash</button>
-            <button id="btnImport" class="btn" aria-label="Importar transacciones">⬆️ Importar</button>
-            <button id="btnExport" class="btn" aria-label="Exportar transacciones">⬇️ Exportar</button>
-            <button id="btnClearAll" class="btn" aria-label="Borrar todo">🗑️ Limpiar</button>
-          </div>
+        </div>
+        <div class="row">
+          <button id="btnSavePayPal" class="btn" aria-label="Guardar saldo PayPal">💾 Guardar PayPal</button>
+          <button id="btnSaveCash" class="btn" aria-label="Guardar saldo Cash">💾 Guardar Cash</button>
+          <button id="btnImport" class="btn" aria-label="Importar transacciones">⬆️ Importar</button>
+          <button id="btnExport" class="btn" aria-label="Exportar transacciones">⬇️ Exportar</button>
+          <button id="btnClearAll" class="btn" aria-label="Borrar todo">🗑️ Limpiar</button>
         </div>
         <div class="tally">
           <div class="pill"><div class="lab">Invertido</div><div class="val" id="sumInvestedPill">$0.00</div></div>
