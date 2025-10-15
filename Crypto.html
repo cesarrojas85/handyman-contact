@@ -75,6 +75,7 @@
     @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
     .error { color: var(--bad); font-size: .9rem; margin-top: 8px; }
     #budgetCard, #salesCard, #incomeCard, #expensesCard { margin-top: 20px; }
+    tr.disabled { opacity: 0.5; }
   </style>
 </head>
 <body>
@@ -277,7 +278,7 @@
 
     <!-- TARJETA: OTROS INGRESOS -->
     <div class="card" id="incomeCard">
-      <ählt: Otros Ingresos</h2>
+      <h2>Otros Ingresos</h2>
       <div class="body">
         <div class="grid2">
           <div>
@@ -458,15 +459,46 @@
           else if (sma7 < sma30 * 0.98) { trend = '🔴 Bajista'; cls = 'bad'; }
           return { ret, vol, trend, cls };
         });
-        const scores = stats.map(s => s.ret / s.vol);
-        const total = scores.reduce((a, b) => a + b, 0);
-        const pct = scores.map(s => s / total * 100);
+
+        // Determine coins in portfolio
+        const coinData = { BTC: { qty: 0 }, ETH: { qty: 0 }, SOL: { qty: 0 } };
+        STATE.txs.forEach(t => {
+          if (t.buyPrice) {
+            coinData[t.coin].qty += t.usd / t.buyPrice;
+          }
+        });
+        STATE.sales.forEach(s => {
+          coinData[s.coin].qty -= s.qty;
+        });
+        const portfolioCoins = Object.keys(coinData).filter(sym => coinData[sym].qty > 0);
+
+        // Calculate recommendation percentages
+        const scores = stats.map(s => Math.max(s.ret / s.vol, 0)); // Non-negative scores
+        let total = 0;
+        const pct = COINS.map((c, i) => {
+          if (portfolioCoins.length > 0 && !portfolioCoins.includes(c.sym)) {
+            return 0; // 0% for coins not in portfolio
+          }
+          total += scores[i];
+          return scores[i];
+        });
+        // Normalize percentages to sum to 100%
+        const normalizedPct = pct.map(p => (total > 0 ? (p / total) * 100 : (portfolioCoins.length > 0 ? 100 / portfolioCoins.length : 100 / COINS.length)));
+
+        // Update UI and STATE
         COINS.forEach((c, i) => {
-          $(c.recoEl).textContent = `${pct[i].toFixed(1)}%`;
+          $(c.recoEl).textContent = `${normalizedPct[i].toFixed(1)}%`;
           const el = $(c.trendEl);
           el.textContent = stats[i].trend;
           el.className = `trend ${stats[i].cls}`;
-          STATE.recommendations[c.sym] = pct[i];
+          STATE.recommendations[c.sym] = normalizedPct[i];
+          // Gray out coins not in portfolio
+          const row = $(c.recoEl).closest('tr');
+          if (portfolioCoins.length > 0 && !portfolioCoins.includes(c.sym)) {
+            row.style.opacity = '0.5';
+          } else {
+            row.style.opacity = '1';
+          }
         });
         $('#priceError').textContent = '';
       } catch (e) {
@@ -778,16 +810,57 @@
         tb.innerHTML = `<tr><td colspan="4" class="muted small" style="text-align:center;">Ingresa un presupuesto y actualiza los datos para ver la distribución.</td></tr>`;
         return;
       }
+
+      // Calculate current holdings
+      const coinData = { BTC: { qty: 0, cur: 0 }, ETH: { qty: 0, cur: 0 }, SOL: { qty: 0, cur: 0 } };
+      STATE.txs.forEach(t => {
+        if (t.buyPrice) {
+          const qty = t.usd / t.buyPrice;
+          coinData[t.coin].qty += qty;
+        }
+      });
+      STATE.sales.forEach(s => {
+        coinData[s.coin].qty -= s.qty;
+      });
+      Object.keys(coinData).forEach(sym => {
+        coinData[sym].cur = coinData[sym].qty * (STATE.prices[sym] || 0);
+      });
+
+      // Check if portfolio is empty
+      const portfolioCoins = Object.keys(coinData).filter(sym => coinData[sym].qty > 0);
+      if (portfolioCoins.length === 0) {
+        tb.innerHTML = `<tr><td colspan="4" class="muted small" style="text-align:center;">No hay monedas en el portafolio. Las recomendaciones se basan en todas las monedas.</td></tr>`;
+      }
+
+      // Calculate total portfolio value
+      const totalPortfolioValue = Object.values(coinData).reduce((sum, d) => sum + d.cur, 0);
+      const targetPortfolioValue = totalPortfolioValue + STATE.budget;
+
+      // Render budget table
+      let isFeasible = true;
       const fragment = document.createDocumentFragment();
       COINS.forEach(c => {
-        const reco = STATE.recommendations[c.sym] || 0;
-        const amount = (STATE.budget * reco) / 100;
-        const qty = STATE.prices[c.sym] ? amount / STATE.prices[c.sym] : 0;
+        const recoPct = STATE.recommendations[c.sym] || 0;
+        if (recoPct === 0 && portfolioCoins.length > 0) return; // Skip coins not in portfolio
+        const targetValue = (targetPortfolioValue * recoPct) / 100;
+        const currentValue = coinData[c.sym].cur;
+        const additionalValue = Math.max(targetValue - currentValue, 0); // No selling
+        const qtyToBuy = STATE.prices[c.sym] ? additionalValue / STATE.prices[c.sym] : 0;
+
+        if (additionalValue > STATE.budget) {
+          isFeasible = false;
+        }
+
         const tr = document.createElement('tr');
-        tr.innerHTML = `<td>${c.sym}</td><td>${reco.toFixed(1)}%</td><td>${fmt(amount, STATE.currency)}</td><td>${fmtCrypto(qty)} ${c.sym}</td>`;
+        tr.innerHTML = `<td>${c.sym}</td><td>${recoPct.toFixed(1)}%</td><td>${fmt(additionalValue, STATE.currency)}</td><td>${STATE.prices[c.sym] ? fmtCrypto(qtyToBuy) + ' ' + c.sym : 'N/A'}</td>`;
         fragment.appendChild(tr);
       });
       tb.appendChild(fragment);
+
+      // Display warning if budget is insufficient
+      if (!isFeasible) {
+        $('#budgetError').textContent = 'El presupuesto es insuficiente para balancear el portafolio según las recomendaciones. Aumenta el presupuesto o ajusta tus tenencias.';
+      }
     }
 
     function validateDate(dateStr) {
