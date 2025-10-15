@@ -832,18 +832,14 @@
         tb.innerHTML = `<tr><td colspan="4" class="muted small" style="text-align:center;">No hay monedas en el portafolio. Las recomendaciones se basan en todas las monedas.</td></tr>`;
       }
 
-      // Calculate total portfolio value
-      const totalPortfolioValue = Object.values(coinData).reduce((sum, d) => sum + d.cur, 0);
-      const targetPortfolioValue = totalPortfolioValue + STATE.budget;
-
-      // Render budget table
+      // Render budget table based on budget and recommendations
       let isFeasible = true;
       const fragment = document.createDocumentFragment();
       COINS.forEach(c => {
         const recoPct = STATE.recommendations[c.sym] || 0;
         if (recoPct === 0 && portfolioCoins.length > 0) return; // Skip coins not in portfolio
-        const targetValue = (targetPortfolioValue * recoPct) / 100;
-        const currentValue = coinData[c.sym].cur;
+        const targetValue = (STATE.budget * recoPct) / 100; // Allocate budget directly
+        const currentValue = coinData[c.sym].cur; // Current value of holdings
         const additionalValue = Math.max(targetValue - currentValue, 0); // No selling
         const qtyToBuy = STATE.prices[c.sym] ? additionalValue / STATE.prices[c.sym] : 0;
 
@@ -860,6 +856,8 @@
       // Display warning if budget is insufficient
       if (!isFeasible) {
         $('#budgetError').textContent = 'El presupuesto es insuficiente para balancear el portafolio según las recomendaciones. Aumenta el presupuesto o ajusta tus tenencias.';
+      } else {
+        $('#budgetError').textContent = '';
       }
     }
 
