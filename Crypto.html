@@ -149,7 +149,7 @@
         <div class="sub-summary">
           <h3 class="small muted" style="margin-bottom:8px;">Resumen por Moneda</h3>
           <table class="table-mini">
-            <thead><tr><th>Moneda</th><th>Invertido</th><th>Actual</th><th>P/L</th></tr></thead>
+            <thead><tr><th>Moneda</th><th>Invertido</th><th>Actual</th><th>P/L</th><th>P/L %</th></tr></thead>
             <tbody id="coinSummary"></tbody>
           </table>
         </div>
@@ -774,8 +774,9 @@
         const d = coinData[sym];
         if (!d.inv && !d.qty) return;
         const pl = d.cur - d.inv - d.com;
+        const plPct = d.inv > 0 ? (pl / d.inv) * 100 : 0; // Avoid division by zero
         const tr = document.createElement('tr');
-        tr.innerHTML = `<td>${sym}</td><td>${fmt(d.inv, STATE.currency)}</td><td>${fmt(d.cur, STATE.currency)}</td><td style="color:${pl >= 0 ? 'var(--ok)' : 'var(--bad)'};">${pl >= 0 ? '+' : ''}${fmt(pl, STATE.currency)}</td>`;
+        tr.innerHTML = `<td>${sym}</td><td>${fmt(d.inv, STATE.currency)}</td><td>${fmt(d.cur, STATE.currency)}</td><td style="color:${pl >= 0 ? 'var(--ok)' : 'var(--bad)'};">${pl >= 0 ? '+' : ''}${fmt(pl, STATE.currency)}</td><td style="color:${pl >= 0 ? 'var(--ok)' : 'var(--bad)'};">${plPct.toFixed(1)}%</td>`;
         coinSummary.appendChild(tr);
       });
 
