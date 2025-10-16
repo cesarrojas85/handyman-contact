@@ -101,6 +101,8 @@
             <tr data-coin="bitcoin"><td class="coin">Bitcoin (BTC)</td><td id="btc" class="price">—</td><td id="btc-reco" class="reco">—</td><td id="btc-trend" class="trend">—</td></tr>
             <tr data-coin="ethereum"><td class="coin">Ethereum (ETH)</td><td id="eth" class="price">—</td><td id="eth-reco" class="reco">—</td><td id="eth-trend" class="trend">—</td></tr>
             <tr data-coin="solana"><td class="coin">Solana (SOL)</td><td id="sol" class="price">—</td><td id="sol-reco" class="reco">—</td><td id="sol-trend" class="trend">—</td></tr>
+            <!-- Nueva fila para Fear & Greed Index -->
+            <tr><td class="coin">Fear & Greed Index</td><td id="fear-greed-value" class="price">—</td><td id="fear-greed-class" class="reco">—</td><td>—</td></tr>
           </tbody>
         </table>
         <div class="last" id="hora">Última actualización: —</div>
@@ -377,6 +379,7 @@
     ];
     let STATE = {
       prices: {},
+      fearGreed: { value: null, classification: null }, // Nuevo: Almacena el Fear & Greed Index
       chart: null,
       pie: null,
       txs: [],
@@ -399,6 +402,27 @@
       const spinner = btn.querySelector('.spinner') || document.createElement('span');
       spinner.className = `spinner ${show ? 'active' : ''}`;
       if (!btn.querySelector('.spinner')) btn.prepend(spinner);
+    }
+
+    // Nueva función: Obtiene el Fear & Greed Index de la API
+    async function fetchFearGreed() {
+      try {
+        const r = await fetch('https://api.alternative.me/fng/');
+        if (!r.ok) throw new Error('Error en la API de Fear & Greed');
+        const d = await r.json();
+        STATE.fearGreed = {
+          value: d.data[0].value, // Valor numérico (ej. "28")
+          classification: d.data[0].value_classification // Clasificación (ej. "Fear")
+        };
+        $('#fear-greed-value').textContent = STATE.fearGreed.value;
+        $('#fear-greed-class').textContent = STATE.fearGreed.classification;
+        $('#priceError').textContent = ''; // Limpia errores si todo sale bien
+      } catch (e) {
+        console.error(e);
+        $('#fear-greed-value').textContent = '—';
+        $('#fear-greed-class').textContent = '—';
+        $('#priceError').textContent += ' Error al cargar Fear & Greed. ';
+      }
     }
 
     async function fetchPrices() {
@@ -1082,6 +1106,7 @@
     };
     $('#btnRefresh').onclick = async () => {
       await fetchPrices();
+      await fetchFearGreed(); // Nuevo: Actualiza Fear & Greed junto con precios
       await analyze90d();
       updateTotals();
       renderBudget();
@@ -1095,6 +1120,7 @@
       $('#expenseDate').max = new Date().toISOString().split('T')[0];
       loadLS();
       await fetchPrices();
+      await fetchFearGreed(); // Nuevo: Carga inicial del Fear & Greed
       await analyze90d();
       updateTotals();
       renderBudget();
@@ -1103,6 +1129,7 @@
       renderExpenses();
       setInterval(async () => {
         await fetchPrices();
+        await fetchFearGreed(); // Nuevo: Refresco automático cada 5 min
         updateTotals();
         renderBudget();
       }, 300000);
