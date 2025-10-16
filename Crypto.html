@@ -34,8 +34,8 @@
     .card h2 { margin: 0; padding: 16px; border-bottom: 1px solid #222; color: var(--gold); font-size: 1.05rem; letter-spacing: .3px; }
     .card .body { padding: 20px; }
     table { width: 100%; border-collapse: collapse; }
-    th, td { padding: 10px 14px; text-align: left; }
-    th { background: var(--gold); color: #111; text-transform: uppercase; font-size: .9rem; }
+    th, td { padding: 8px; text-align: left; font-size: 0.85rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; } /* Ajustado: padding reducido, nowrap para una línea */
+    th { background: var(--gold); color: #111; text-transform: uppercase; font-size: 0.8rem; }
     tr:nth-child(even) { background: #222; }
     tr:hover { background: #2a2a2a; }
     .coin { color: var(--gold); font-weight: 600; cursor: pointer; }
@@ -101,7 +101,6 @@
             <tr data-coin="bitcoin"><td class="coin">Bitcoin (BTC)</td><td id="btc" class="price">—</td><td id="btc-reco" class="reco">—</td><td id="btc-trend" class="trend">—</td></tr>
             <tr data-coin="ethereum"><td class="coin">Ethereum (ETH)</td><td id="eth" class="price">—</td><td id="eth-reco" class="reco">—</td><td id="eth-trend" class="trend">—</td></tr>
             <tr data-coin="solana"><td class="coin">Solana (SOL)</td><td id="sol" class="price">—</td><td id="sol-reco" class="reco">—</td><td id="sol-trend" class="trend">—</td></tr>
-            <!-- Nueva fila para Fear & Greed Index -->
             <tr><td class="coin">Fear & Greed Index</td><td id="fear-greed-value" class="price">—</td><td id="fear-greed-class" class="reco">—</td><td>—</td></tr>
           </tbody>
         </table>
@@ -379,7 +378,7 @@
     ];
     let STATE = {
       prices: {},
-      fearGreed: { value: null, classification: null }, // Nuevo: Almacena el Fear & Greed Index
+      fearGreed: { value: null, classification: null },
       chart: null,
       pie: null,
       txs: [],
@@ -404,19 +403,18 @@
       if (!btn.querySelector('.spinner')) btn.prepend(spinner);
     }
 
-    // Nueva función: Obtiene el Fear & Greed Index de la API
     async function fetchFearGreed() {
       try {
         const r = await fetch('https://api.alternative.me/fng/');
         if (!r.ok) throw new Error('Error en la API de Fear & Greed');
         const d = await r.json();
         STATE.fearGreed = {
-          value: d.data[0].value, // Valor numérico (ej. "28")
-          classification: d.data[0].value_classification // Clasificación (ej. "Fear")
+          value: parseInt(d.data[0].value),
+          classification: d.data[0].value_classification
         };
         $('#fear-greed-value').textContent = STATE.fearGreed.value;
         $('#fear-greed-class').textContent = STATE.fearGreed.classification;
-        $('#priceError').textContent = ''; // Limpia errores si todo sale bien
+        $('#priceError').textContent = '';
       } catch (e) {
         console.error(e);
         $('#fear-greed-value').textContent = '—';
@@ -496,8 +494,10 @@
         });
         const portfolioCoins = Object.keys(coinData).filter(sym => coinData[sym].qty > 0);
 
-        // Calculate recommendation percentages
-        const scores = stats.map(s => Math.max(s.ret / s.vol, 0)); // Non-negative scores
+        // Calculate recommendation percentages with Fear & Greed adjustment
+        const fearGreedValue = STATE.fearGreed.value !== null ? STATE.fearGreed.value : 50; // Default to 50 (Neutral) if not available
+        const fearGreedFactor = 1 + ((50 - fearGreedValue) / 100); // Ajuste: +25% en Fear (25), -25% en Greed (75)
+        const scores = stats.map(s => Math.max(s.ret / s.vol, 0) * fearGreedFactor); // Ajustado: Multiplicar por fearGreedFactor
         let total = 0;
         const pct = COINS.map((c, i) => {
           if (portfolioCoins.length > 0 && !portfolioCoins.includes(c.sym)) {
@@ -798,7 +798,7 @@
         const d = coinData[sym];
         if (!d.inv && !d.qty) return;
         const pl = d.cur - d.inv - d.com;
-        const plPct = d.inv > 0 ? (pl / d.inv) * 100 : 0; // Avoid division by zero
+        const plPct = d.inv > 0 ? (pl / d.inv) * 100 : 0;
         const tr = document.createElement('tr');
         tr.innerHTML = `<td>${sym}</td><td>${fmt(d.inv, STATE.currency)}</td><td>${fmt(d.cur, STATE.currency)}</td><td style="color:${pl >= 0 ? 'var(--ok)' : 'var(--bad)'};">${pl >= 0 ? '+' : ''}${fmt(pl, STATE.currency)}</td><td style="color:${pl >= 0 ? 'var(--ok)' : 'var(--bad)'};">${plPct.toFixed(1)}%</td>`;
         coinSummary.appendChild(tr);
@@ -836,7 +836,6 @@
         return;
       }
 
-      // Check if portfolio is empty
       const coinData = { BTC: { qty: 0 }, ETH: { qty: 0 }, SOL: { qty: 0 } };
       STATE.txs.forEach(t => {
         if (t.buyPrice) {
@@ -853,12 +852,11 @@
         tb.innerHTML = `<tr><td colspan="4" class="muted small" style="text-align:center;">No hay monedas en el portafolio. Las recomendaciones se basan en todas las monedas.</td></tr>`;
       }
 
-      // Render budget table based on budget and recommendations
       const fragment = document.createDocumentFragment();
       COINS.forEach(c => {
         const recoPct = STATE.recommendations[c.sym] || 0;
-        if (recoPct === 0 && portfolioCoins.length > 0) return; // Skip coins not in portfolio
-        const targetValue = (STATE.budget * recoPct) / 100; // Allocate budget directly
+        if (recoPct === 0 && portfolioCoins.length > 0) return;
+        const targetValue = (STATE.budget * recoPct) / 100;
         const qtyToBuy = STATE.prices[c.sym] ? targetValue / STATE.prices[c.sym] : 0;
 
         const tr = document.createElement('tr');
@@ -946,7 +944,7 @@
           STATE.txs = imported.txs.filter(t => t.coin && t.date && t.usd && validateDate(t.date) && t.usd > 0);
           STATE.sales = imported.sales.filter(s => s.coin && s.date && s.qty > 0 && s.usd > 0 && s.salePrice > 0 && validateDate(s.date));
           STATE.incomes = imported.incomes.filter(i => i.category && i.date && i.amount > 0 && validateDate(i.date));
-          STATE.expenses = imported.expenses.filter(e => e.type && e.category && e.date && e.amount > 0 && validateDate(e.date));
+          STATE.expenses = imported.expenses.filter(e => e.type && e.category && e.date && e.amount > 0 && validateDate(i.date));
           STATE.paypal = parseFloat(imported.paypal) || 0;
           STATE.cash = parseFloat(imported.cash) || 0;
           saveLS();
@@ -1106,7 +1104,7 @@
     };
     $('#btnRefresh').onclick = async () => {
       await fetchPrices();
-      await fetchFearGreed(); // Nuevo: Actualiza Fear & Greed junto con precios
+      await fetchFearGreed();
       await analyze90d();
       updateTotals();
       renderBudget();
@@ -1120,7 +1118,7 @@
       $('#expenseDate').max = new Date().toISOString().split('T')[0];
       loadLS();
       await fetchPrices();
-      await fetchFearGreed(); // Nuevo: Carga inicial del Fear & Greed
+      await fetchFearGreed();
       await analyze90d();
       updateTotals();
       renderBudget();
@@ -1129,7 +1127,7 @@
       renderExpenses();
       setInterval(async () => {
         await fetchPrices();
-        await fetchFearGreed(); // Nuevo: Refresco automático cada 5 min
+        await fetchFearGreed();
         updateTotals();
         renderBudget();
       }, 300000);
