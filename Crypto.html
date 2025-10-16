@@ -34,7 +34,7 @@
     .card h2 { margin: 0; padding: 16px; border-bottom: 1px solid #222; color: var(--gold); font-size: 1.05rem; letter-spacing: .3px; }
     .card .body { padding: 20px; }
     table { width: 100%; border-collapse: collapse; }
-    th, td { padding: 8px; text-align: left; font-size: 0.85rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; } /* Ajustado: padding reducido, nowrap para una línea */
+    th, td { padding: 8px; text-align: left; font-size: 0.85rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     th { background: var(--gold); color: #111; text-transform: uppercase; font-size: 0.8rem; }
     tr:nth-child(even) { background: #222; }
     tr:hover { background: #2a2a2a; }
@@ -59,8 +59,14 @@
     .pill .lab { color: var(--muted2); font-size: .85rem; }
     .pill .val { font-weight: 700; margin-top: 4px; }
     .table-mini { width: 100%; border-collapse: collapse; margin-top: 12px; }
-    .table-mini th { background: #232323; color: #ddd; }
-    .table-mini td, .table-mini th { padding: 8px 12px; font-size: .92rem; }
+    .table-mini th { background: #232323; color: #ddd; padding: 6px; font-size: 0.8rem; } /* Ajustado: padding reducido */
+    .table-mini td { padding: 6px; font-size: 0.85rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; } /* Ajustado: padding reducido, nowrap */
+    .table-mini th:nth-child(1), .table-mini td:nth-child(1) { max-width: 60px; } /* Moneda */
+    .table-mini th:nth-child(2), .table-mini td:nth-child(2) { max-width: 80px; } /* Invertido */
+    .table-mini th:nth-child(3), .table-mini td:nth-child(3) { max-width: 80px; } /* Actual */
+    .table-mini th:nth-child(4), .table-mini td:nth-child(4) { max-width: 80px; } /* P/L */
+    .table-mini th:nth-child(5), .table-mini td:nth-child(5) { max-width: 60px; text-align: right; } /* P/L % */
+    .table-mini th:nth-child(6), .table-mini td:nth-child(6) { max-width: 60px; text-align: right; } /* Nueva: % Portafolio */
     .row { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; justify-content: flex-end; margin-top: 10px; }
     @media (max-width: 600px) { .row { flex-direction: column; align-items: stretch; } .row .btn { width: 100%; text-align: center; } }
     .small { font-size: .86rem; }
@@ -150,7 +156,7 @@
         <div class="sub-summary">
           <h3 class="small muted" style="margin-bottom:8px;">Resumen por Moneda</h3>
           <table class="table-mini">
-            <thead><tr><th>Moneda</th><th>Invertido</th><th>Actual</th><th>P/L</th><th>P/L %</th></tr></thead>
+            <thead><tr><th>Moneda</th><th>Invertido</th><th>Actual</th><th>P/L</th><th>P/L %</th><th>% Portafolio</th></tr></thead>
             <tbody id="coinSummary"></tbody>
           </table>
         </div>
@@ -799,8 +805,9 @@
         if (!d.inv && !d.qty) return;
         const pl = d.cur - d.inv - d.com;
         const plPct = d.inv > 0 ? (pl / d.inv) * 100 : 0;
+        const portfolioPct = current > 0 ? (d.cur / current) * 100 : 0; // Porcentaje del portafolio
         const tr = document.createElement('tr');
-        tr.innerHTML = `<td>${sym}</td><td>${fmt(d.inv, STATE.currency)}</td><td>${fmt(d.cur, STATE.currency)}</td><td style="color:${pl >= 0 ? 'var(--ok)' : 'var(--bad)'};">${pl >= 0 ? '+' : ''}${fmt(pl, STATE.currency)}</td><td style="color:${pl >= 0 ? 'var(--ok)' : 'var(--bad)'};">${plPct.toFixed(1)}%</td>`;
+        tr.innerHTML = `<td>${sym}</td><td>${fmt(d.inv, STATE.currency)}</td><td>${fmt(d.cur, STATE.currency)}</td><td style="color:${pl >= 0 ? 'var(--ok)' : 'var(--bad)'};">${pl >= 0 ? '+' : ''}${fmt(pl, STATE.currency)}</td><td style="color:${pl >= 0 ? 'var(--ok)' : 'var(--bad)'};">${plPct.toFixed(1)}%</td><td style="text-align:right;">${portfolioPct.toFixed(1)}%</td>`;
         coinSummary.appendChild(tr);
       });
 
@@ -944,7 +951,7 @@
           STATE.txs = imported.txs.filter(t => t.coin && t.date && t.usd && validateDate(t.date) && t.usd > 0);
           STATE.sales = imported.sales.filter(s => s.coin && s.date && s.qty > 0 && s.usd > 0 && s.salePrice > 0 && validateDate(s.date));
           STATE.incomes = imported.incomes.filter(i => i.category && i.date && i.amount > 0 && validateDate(i.date));
-          STATE.expenses = imported.expenses.filter(e => e.type && e.category && e.date && e.amount > 0 && validateDate(i.date));
+          STATE.expenses = imported.expenses.filter(e => e.type && e.category && e.date && e.amount > 0 && validateDate(e.date));
           STATE.paypal = parseFloat(imported.paypal) || 0;
           STATE.cash = parseFloat(imported.cash) || 0;
           saveLS();
