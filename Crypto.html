@@ -59,14 +59,14 @@
     .pill .lab { color: var(--muted2); font-size: .85rem; }
     .pill .val { font-weight: 700; margin-top: 4px; }
     .table-mini { width: 100%; border-collapse: collapse; margin-top: 12px; }
-    .table-mini th { background: #232323; color: #ddd; padding: 6px; font-size: 0.8rem; } /* Ajustado: padding reducido */
-    .table-mini td { padding: 6px; font-size: 0.85rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; } /* Ajustado: padding reducido, nowrap */
+    .table-mini th { background: #232323; color: #ddd; padding: 6px; font-size: 0.8rem; }
+    .table-mini td { padding: 6px; font-size: 0.85rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .table-mini th:nth-child(1), .table-mini td:nth-child(1) { max-width: 60px; } /* Moneda */
-    .table-mini th:nth-child(2), .table-mini td:nth-child(2) { max-width: 80px; } /* Invertido */
-    .table-mini th:nth-child(3), .table-mini td:nth-child(3) { max-width: 80px; } /* Actual */
-    .table-mini th:nth-child(4), .table-mini td:nth-child(4) { max-width: 80px; } /* P/L */
-    .table-mini th:nth-child(5), .table-mini td:nth-child(5) { max-width: 60px; text-align: right; } /* P/L % */
-    .table-mini th:nth-child(6), .table-mini td:nth-child(6) { max-width: 60px; text-align: right; } /* Nueva: % Portafolio */
+    .table-mini th:nth-child(2), .table-mini td:nth-child(2) { max-width: 80px; text-align: right; } /* % Recomendado o Invertido */
+    .table-mini th:nth-child(3), .table-mini td:nth-child(3) { max-width: 80px; } /* Monto USD o Actual */
+    .table-mini th:nth-child(4), .table-mini td:nth-child(4) { max-width: 100px; } /* Cantidad o P/L */
+    .table-mini th:nth-child(5), .table-mini td:nth-child(5) { max-width: 60px; text-align: right; } /* Desviación o Precio Compra o P/L % */
+    .table-mini th:nth-child(6), .table-mini td:nth-child(6) { max-width: 60px; text-align: right; } /* % Portafolio */
     .row { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; justify-content: flex-end; margin-top: 10px; }
     @media (max-width: 600px) { .row { flex-direction: column; align-items: stretch; } .row .btn { width: 100%; text-align: center; } }
     .small { font-size: .86rem; }
@@ -228,15 +228,27 @@
             <div class="muted small">Presupuesto Disponible (USD)</div>
             <input id="budgetInput" class="input" type="number" step="0.01" placeholder="Ej. 1000.00" aria-label="Presupuesto disponible para compras en USD" />
           </div>
+          <div>
+            <div class="muted small">Monto DCA Mensual (USD)</div>
+            <input id="dcaAmount" class="input" type="number" step="0.01" placeholder="Ej. 1000.00" aria-label="Monto mensual para DCA" />
+          </div>
           <div class="row" style="align-items:end;justify-content:flex-end">
             <button id="btnCalculateBudget" class="btn" aria-label="Calcular distribución del presupuesto">📊 Calcular</button>
+            <button id="btnApplyDCA" class="btn" aria-label="Aplicar plan DCA">🚀 Aplicar DCA</button>
           </div>
         </div>
         <div id="budgetError" class="error" role="alert"></div>
         <table class="table-mini" id="budgetTable" style="margin-top:16px;">
-          <thead><tr><th>Moneda</th><th>% Recomendado</th><th>Monto USD</th><th>Cantidad</th></tr></thead>
+          <thead><tr><th>Moneda</th><th>% Recomendado</th><th>Monto USD</th><th>Cantidad</th><th>Desviación</th></tr></thead>
           <tbody id="budgetTbody"></tbody>
         </table>
+        <div class="sub-summary" style="margin-top:16px;">
+          <h3 class="small muted" style="margin-bottom:8px;">Histórico DCA</h3>
+          <table class="table-mini" id="dcaTable">
+            <thead><tr><th>Fecha</th><th>Moneda</th><th>Monto USD</th><th>Cantidad</th><th>Precio Compra</th></tr></thead>
+            <tbody id="dcaTbody"></tbody>
+          </table>
+        </div>
       </div>
     </div>
 
@@ -394,6 +406,8 @@
       paypal: 0,
       cash: 0,
       budget: 0,
+      dcaAmount: 0,
+      dcaHistory: [],
       recommendations: {},
       currentCoinId: null,
       currentCoinName: null,
@@ -488,7 +502,6 @@
           return { ret, vol, trend, cls };
         });
 
-        // Determine coins in portfolio
         const coinData = { BTC: { qty: 0 }, ETH: { qty: 0 }, SOL: { qty: 0 } };
         STATE.txs.forEach(t => {
           if (t.buyPrice) {
@@ -500,34 +513,30 @@
         });
         const portfolioCoins = Object.keys(coinData).filter(sym => coinData[sym].qty > 0);
 
-        // Calculate recommendation percentages with Fear & Greed adjustment
-        const fearGreedValue = STATE.fearGreed.value !== null ? STATE.fearGreed.value : 50; // Default to 50 (Neutral) if not available
-        const fearGreedFactor = 1 + ((50 - fearGreedValue) / 100); // Ajuste: +25% en Fear (25), -25% en Greed (75)
-        const scores = stats.map(s => Math.max(s.ret / s.vol, 0) * fearGreedFactor); // Ajustado: Multiplicar por fearGreedFactor
+        const fearGreedValue = STATE.fearGreed.value !== null ? STATE.fearGreed.value : 50;
+        const fearGreedFactor = 1 + ((50 - fearGreedValue) / 100);
+        const scores = stats.map(s => Math.max(s.ret / s.vol, 0) * fearGreedFactor);
         let total = 0;
         const pct = COINS.map((c, i) => {
           if (portfolioCoins.length > 0 && !portfolioCoins.includes(c.sym)) {
-            return 0; // 0% for coins not in portfolio
+            return 0;
           }
           total += scores[i];
           return scores[i];
         });
-        // Normalize percentages to sum to 100%
         const normalizedPct = pct.map(p => (total > 0 ? (p / total) * 100 : (portfolioCoins.length > 0 ? 100 / portfolioCoins.length : 100 / COINS.length)));
 
-        // Update UI and STATE
         COINS.forEach((c, i) => {
           $(c.recoEl).textContent = `${normalizedPct[i].toFixed(1)}%`;
           const el = $(c.trendEl);
           el.textContent = stats[i].trend;
           el.className = `trend ${stats[i].cls}`;
           STATE.recommendations[c.sym] = normalizedPct[i];
-          // Gray out coins not in portfolio
           const row = $(c.recoEl).closest('tr');
           if (portfolioCoins.length > 0 && !portfolioCoins.includes(c.sym)) {
-            row.style.opacity = '0.5';
+            row.classList.add('disabled');
           } else {
-            row.style.opacity = '1';
+            row.classList.remove('disabled');
           }
         });
         $('#priceError').textContent = '';
@@ -577,6 +586,8 @@
         STATE.paypal = parseFloat(localStorage.getItem('crypto_v5_paypal') || '0') || 0;
         STATE.cash = parseFloat(localStorage.getItem('crypto_v5_cash') || '0') || 0;
         STATE.budget = parseFloat(localStorage.getItem('crypto_v5_budget') || '0') || 0;
+        STATE.dcaAmount = parseFloat(localStorage.getItem('crypto_v5_dcaAmount') || '0') || 0;
+        STATE.dcaHistory = JSON.parse(localStorage.getItem('crypto_v5_dcaHistory') || '[]');
       } catch {
         STATE.txs = [];
         STATE.sales = [];
@@ -585,15 +596,19 @@
         STATE.paypal = 0;
         STATE.cash = 0;
         STATE.budget = 0;
+        STATE.dcaAmount = 0;
+        STATE.dcaHistory = [];
       }
       $('#paypalBalance').value = STATE.paypal || '';
       $('#cashBalance').value = STATE.cash || '';
       $('#budgetInput').value = STATE.budget || '';
+      $('#dcaAmount').value = STATE.dcaAmount || '';
       renderTx();
       renderSales();
       renderIncomes();
       renderExpenses();
       renderBudget();
+      renderDCAHistory();
     }
 
     function saveLS() {
@@ -604,6 +619,24 @@
       localStorage.setItem('crypto_v5_paypal', STATE.paypal);
       localStorage.setItem('crypto_v5_cash', STATE.cash);
       localStorage.setItem('crypto_v5_budget', STATE.budget);
+      localStorage.setItem('crypto_v5_dcaAmount', STATE.dcaAmount);
+      localStorage.setItem('crypto_v5_dcaHistory', JSON.stringify(STATE.dcaHistory));
+    }
+
+    function renderDCAHistory() {
+      const tb = $('#dcaTbody');
+      if (!STATE.dcaHistory.length) {
+        tb.innerHTML = '<tr><td colspan="5" class="muted small" style="text-align:center;">Sin compras DCA registradas</td></tr>';
+        return;
+      }
+      const fragment = document.createDocumentFragment();
+      STATE.dcaHistory.forEach(t => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `<td>${t.date}</td><td>${t.coin}</td><td>${fmt(t.usd, STATE.currency)}</td><td>${fmtCrypto(t.qty)}</td><td>${fmt(t.buyPrice, STATE.currency)}</td>`;
+        fragment.appendChild(tr);
+      });
+      tb.innerHTML = '';
+      tb.appendChild(fragment);
     }
 
     function renderTx() {
@@ -627,6 +660,7 @@
           STATE.txs[i].buyPrice = parseFloat(e.target.value) || 0;
           saveLS();
           updateTotals();
+          renderBudget();
         });
       });
       tb.querySelectorAll('.edit-commission').forEach(inp => {
@@ -635,6 +669,7 @@
           STATE.txs[i].commission = parseFloat(e.target.value) || 0;
           saveLS();
           updateTotals();
+          renderBudget();
         });
       });
       tb.querySelectorAll('button').forEach(b => {
@@ -643,6 +678,7 @@
           saveLS();
           renderTx();
           updateTotals();
+          renderBudget();
         };
       });
       updateTotals();
@@ -656,8 +692,8 @@
       }
       const fragment = document.createDocumentFragment();
       STATE.sales.forEach((s, i) => {
-        const tr = document.createElement('tr');
         const pl = s.gainLoss >= 0 ? `+${fmt(s.gainLoss, STATE.currency)}` : fmt(s.gainLoss, STATE.currency);
+        const tr = document.createElement('tr');
         tr.innerHTML = `<td>${s.date}</td><td>${s.coin}</td><td>${fmtCrypto(s.qty)}</td><td>${fmt(s.usd, STATE.currency)}</td><td>${fmt(s.salePrice, STATE.currency)}</td><td>${fmt(s.commission || 0, STATE.currency)}</td><td style="color:${s.gainLoss >= 0 ? 'var(--ok)' : 'var(--bad)'};">${pl}</td><td><button class="btn small" data-i="${i}" aria-label="Eliminar venta">🗑</button></td>`;
         fragment.appendChild(tr);
       });
@@ -670,6 +706,7 @@
           saveLS();
           renderSales();
           updateTotals();
+          renderBudget();
         };
       });
     }
@@ -805,7 +842,7 @@
         if (!d.inv && !d.qty) return;
         const pl = d.cur - d.inv - d.com;
         const plPct = d.inv > 0 ? (pl / d.inv) * 100 : 0;
-        const portfolioPct = current > 0 ? (d.cur / current) * 100 : 0; // Porcentaje del portafolio
+        const portfolioPct = current > 0 ? (d.cur / current) * 100 : 0;
         const tr = document.createElement('tr');
         tr.innerHTML = `<td>${sym}</td><td>${fmt(d.inv, STATE.currency)}</td><td>${fmt(d.cur, STATE.currency)}</td><td style="color:${pl >= 0 ? 'var(--ok)' : 'var(--bad)'};">${pl >= 0 ? '+' : ''}${fmt(pl, STATE.currency)}</td><td style="color:${pl >= 0 ? 'var(--ok)' : 'var(--bad)'};">${plPct.toFixed(1)}%</td><td style="text-align:right;">${portfolioPct.toFixed(1)}%</td>`;
         coinSummary.appendChild(tr);
@@ -839,11 +876,11 @@
       const tb = $('#budgetTbody');
       tb.innerHTML = '';
       if (!Object.keys(STATE.recommendations).length || !STATE.budget) {
-        tb.innerHTML = `<tr><td colspan="4" class="muted small" style="text-align:center;">Ingresa un presupuesto y actualiza los datos para ver la distribución.</td></tr>`;
+        tb.innerHTML = `<tr><td colspan="5" class="muted small" style="text-align:center;">Ingresa un presupuesto y actualiza los datos para ver la distribución.</td></tr>`;
         return;
       }
 
-      const coinData = { BTC: { qty: 0 }, ETH: { qty: 0 }, SOL: { qty: 0 } };
+      const coinData = { BTC: { qty: 0, cur: 0 }, ETH: { qty: 0, cur: 0 }, SOL: { qty: 0, cur: 0 } };
       STATE.txs.forEach(t => {
         if (t.buyPrice) {
           const qty = t.usd / t.buyPrice;
@@ -853,25 +890,26 @@
       STATE.sales.forEach(s => {
         coinData[s.coin].qty -= s.qty;
       });
-      const portfolioCoins = Object.keys(coinData).filter(sym => coinData[sym].qty > 0);
-
-      if (portfolioCoins.length === 0) {
-        tb.innerHTML = `<tr><td colspan="4" class="muted small" style="text-align:center;">No hay monedas en el portafolio. Las recomendaciones se basan en todas las monedas.</td></tr>`;
-      }
+      let current = 0;
+      Object.keys(coinData).forEach(sym => {
+        const now = STATE.prices[sym];
+        coinData[sym].cur = coinData[sym].qty * now;
+        current += coinData[sym].cur;
+      });
 
       const fragment = document.createDocumentFragment();
       COINS.forEach(c => {
         const recoPct = STATE.recommendations[c.sym] || 0;
-        if (recoPct === 0 && portfolioCoins.length > 0) return;
+        const portfolioPct = current > 0 ? (coinData[c.sym].cur / current) * 100 : 0;
+        if (recoPct === 0 && portfolioPct === 0) return;
         const targetValue = (STATE.budget * recoPct) / 100;
         const qtyToBuy = STATE.prices[c.sym] ? targetValue / STATE.prices[c.sym] : 0;
-
+        const deviation = portfolioPct - recoPct;
         const tr = document.createElement('tr');
-        tr.innerHTML = `<td>${c.sym}</td><td>${recoPct.toFixed(1)}%</td><td>${fmt(targetValue, STATE.currency)}</td><td>${STATE.prices[c.sym] ? fmtCrypto(qtyToBuy) + ' ' + c.sym : 'N/A'}</td>`;
+        tr.innerHTML = `<td>${c.sym}</td><td>${recoPct.toFixed(1)}%</td><td>${fmt(targetValue, STATE.currency)}</td><td>${STATE.prices[c.sym] ? fmtCrypto(qtyToBuy) + ' ' + c.sym : 'N/A'}</td><td style="color:${deviation >= 0 ? 'var(--ok)' : 'var(--bad)'};">${deviation >= 0 ? '+' : ''}${deviation.toFixed(1)}%</td>`;
         fragment.appendChild(tr);
       });
       tb.appendChild(fragment);
-
       $('#budgetError').textContent = '';
     }
 
@@ -920,6 +958,7 @@
       $('#txError').textContent = '';
       STATE.paypal = v;
       saveLS();
+      updateTotals();
       alert('Saldo PayPal guardado.');
     };
     $('#btnSaveCash').onclick = () => {
@@ -949,9 +988,9 @@
               !imported.incomes || !Array.isArray(imported.incomes) ||
               !imported.expenses || !Array.isArray(imported.expenses)) throw new Error('Formato inválido');
           STATE.txs = imported.txs.filter(t => t.coin && t.date && t.usd && validateDate(t.date) && t.usd > 0);
-          STATE.sales = imported.sales.filter(s => s.coin && s.date && s.qty > 0 && s.usd > 0 && s.salePrice > 0 && validateDate(s.date));
-          STATE.incomes = imported.incomes.filter(i => i.category && i.date && i.amount > 0 && validateDate(i.date));
-          STATE.expenses = imported.expenses.filter(e => e.type && e.category && e.date && e.amount > 0 && validateDate(e.date));
+          STATE.sales = imported.sales.filter(s => s.coin && s.date && s.qty > 0 && s.usd > 0 && validateDate(s.date));
+          STATE.incomes = imported.incomes.filter(i => i.date && i.amount > 0 && validateDate(i.date));
+          STATE.expenses = imported.expenses.filter(e => e.date && e.amount > 0 && validateDate(e.date));
           STATE.paypal = parseFloat(imported.paypal) || 0;
           STATE.cash = parseFloat(imported.cash) || 0;
           saveLS();
@@ -960,29 +999,37 @@
           renderIncomes();
           renderExpenses();
           updateTotals();
-          alert('Transacciones, ventas, ingresos, gastos/inversiones y saldos importados correctamente.');
+          renderBudget();
+          alert('Datos importados correctamente.');
         } catch (e) {
-          $('#txError').textContent = 'Error al importar el archivo. Asegúrate de que sea un JSON válido con "txs", "sales", "incomes", "expenses", "paypal" y "cash".';
+          console.error(e);
+          $('#txError').textContent = 'Error al importar. Asegúrate de que el archivo sea un JSON válido.';
         }
       };
       input.click();
     };
     $('#btnExport').onclick = () => {
-      if (!STATE.txs.length && !STATE.sales.length && !STATE.incomes.length && !STATE.expenses.length) {
-        alert('No hay transacciones, ventas, ingresos ni gastos/inversiones que exportar.');
-        return;
-      }
-      const data = { txs: STATE.txs, sales: STATE.sales, incomes: STATE.incomes, expenses: STATE.expenses, paypal: STATE.paypal, cash: STATE.cash };
-      const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(data, null, 2));
-      const link = document.createElement('a');
-      link.setAttribute('href', dataStr);
-      link.setAttribute('download', 'crypto_portfolio_backup.json');
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
+      const data = {
+        txs: STATE.txs,
+        sales: STATE.sales,
+        incomes: STATE.incomes,
+        expenses: STATE.expenses,
+        paypal: STATE.paypal,
+        cash: STATE.cash,
+        budget: STATE.budget,
+        dcaAmount: STATE.dcaAmount,
+        dcaHistory: STATE.dcaHistory
+      };
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'crypto_dashboard.json';
+      a.click();
+      URL.revokeObjectURL(url);
     };
     $('#btnClearAll').onclick = () => {
-      if (!confirm('¿Borrar todo?')) return;
+      if (!confirm('¿Estás seguro de que deseas borrar todos los datos?')) return;
       STATE.txs = [];
       STATE.sales = [];
       STATE.incomes = [];
@@ -990,15 +1037,21 @@
       STATE.paypal = 0;
       STATE.cash = 0;
       STATE.budget = 0;
-      localStorage.clear();
+      STATE.dcaAmount = 0;
+      STATE.dcaHistory = [];
+      saveLS();
       renderTx();
       renderSales();
       renderIncomes();
       renderExpenses();
       renderBudget();
+      renderDCAHistory();
+      updateTotals();
       $('#paypalBalance').value = '';
       $('#cashBalance').value = '';
       $('#budgetInput').value = '';
+      $('#dcaAmount').value = '';
+      alert('Todos los datos han sido eliminados.');
     };
     $('#btnCalculateBudget').onclick = () => {
       const budget = parseFloat($('#budgetInput').value) || 0;
@@ -1006,108 +1059,41 @@
         $('#budgetError').textContent = 'Ingresa un presupuesto válido (mayor a 0).';
         return;
       }
-      if (!Object.keys(STATE.recommendations).length || !Object.keys(STATE.prices).length) {
-        $('#budgetError').textContent = 'Actualiza los datos de precios y recomendaciones primero.';
-        return;
-      }
       $('#budgetError').textContent = '';
       STATE.budget = budget;
       saveLS();
       renderBudget();
     };
-    $('#btnAddSale').onclick = () => {
-      const coin = $('#saleCoin').value;
-      const date = $('#saleDate').value;
-      const qty = parseFloat($('#saleQty').value) || 0;
-      const salePrice = parseFloat($('#salePrice').value) || 0;
-      const commission = parseFloat($('#saleCommission').value) || 0;
-
-      if (!coin || !date || qty <= 0 || salePrice <= 0 || commission < 0 || !validateDate(date)) {
-        $('#saleError').textContent = 'Completa todos los campos correctamente (fecha no futura, cantidad y precio positivos, comisión no negativa).';
+    $('#btnApplyDCA').onclick = () => {
+      const dcaAmount = parseFloat($('#dcaAmount').value) || 0;
+      if (dcaAmount <= 0) {
+        $('#budgetError').textContent = 'Ingresa un monto DCA válido (mayor a 0).';
         return;
       }
-
-      let totalQty = 0;
-      STATE.txs.forEach(t => {
-        if (t.coin === coin) {
-          totalQty += t.buyPrice ? t.usd / t.buyPrice : 0;
+      if (!Object.keys(STATE.prices).length || !Object.keys(STATE.recommendations).length) {
+        $('#budgetError').textContent = 'Actualiza los datos de precios y recomendaciones primero.';
+        return;
+      }
+      const today = new Date().toISOString().split('T')[0];
+      COINS.forEach(c => {
+        const recoPct = STATE.recommendations[c.sym] || 0;
+        if (recoPct === 0) return;
+        const usd = (dcaAmount * recoPct) / 100;
+        const buyPrice = STATE.prices[c.sym];
+        const qty = buyPrice ? usd / buyPrice : 0;
+        if (qty > 0) {
+          STATE.txs.unshift({ coin: c.sym, date: today, usd, buyPrice, commission: 0 });
+          STATE.dcaHistory.unshift({ coin: c.sym, date: today, usd, qty, buyPrice });
         }
       });
-      STATE.sales.forEach(s => {
-        if (s.coin === coin) totalQty -= s.qty;
-      });
-
-      if (qty > totalQty) {
-        $('#saleError').textContent = `No tienes suficiente ${coin} para vender (disponible: ${fmtCrypto(totalQty)}).`;
-        return;
-      }
-
-      const usd = qty * salePrice;
-      const gainLoss = calculateGainLoss(coin, qty, salePrice, commission);
-
-      STATE.sales.unshift({ coin, date, qty, usd, salePrice, commission, gainLoss });
-      STATE.cash += usd - commission;
-      $('#cashBalance').value = STATE.cash.toFixed(2);
-
-      $('#saleError').textContent = '';
-      $('#saleQty').value = '';
-      $('#salePrice').value = '';
-      $('#saleCommission').value = '';
-
+      $('#budgetError').textContent = '';
+      STATE.dcaAmount = dcaAmount;
       saveLS();
-      renderSales();
+      renderTx();
+      renderDCAHistory();
       updateTotals();
-    };
-    $('#btnAddIncome').onclick = () => {
-      const category = $('#incomeCategory').value;
-      const date = $('#incomeDate').value;
-      const amount = parseFloat($('#incomeAmount').value) || 0;
-      const description = $('#incomeDescription').value.trim();
-
-      if (!category || !date || amount <= 0 || !validateDate(date)) {
-        $('#incomeError').textContent = 'Completa todos los campos correctamente (fecha no futura, monto positivo).';
-        return;
-      }
-
-      $('#incomeError').textContent = '';
-      STATE.incomes.unshift({ category, date, amount, description });
-      STATE.cash += amount;
-      $('#cashBalance').value = STATE.cash.toFixed(2);
-
-      $('#incomeAmount').value = '';
-      $('#incomeDescription').value = '';
-
-      saveLS();
-      renderIncomes();
-      updateTotals();
-    };
-    $('#btnAddExpense').onclick = () => {
-      const type = $('#expenseType').value;
-      const category = $('#expenseCategory').value;
-      const date = $('#expenseDate').value;
-      const amount = parseFloat($('#expenseAmount').value) || 0;
-      const description = $('#expenseDescription').value.trim();
-
-      if (!type || !category || !date || amount <= 0 || !validateDate(date)) {
-        $('#expenseError').textContent = 'Completa todos los campos correctamente (fecha no futura, monto positivo).';
-        return;
-      }
-      if (amount > STATE.cash) {
-        $('#expenseError').textContent = `No tienes suficiente saldo en Cash (${fmt(STATE.cash, STATE.currency)}).`;
-        return;
-      }
-
-      $('#expenseError').textContent = '';
-      STATE.expenses.unshift({ type, category, date, amount, description });
-      STATE.cash -= amount;
-      $('#cashBalance').value = STATE.cash.toFixed(2);
-
-      $('#expenseAmount').value = '';
-      $('#expenseDescription').value = '';
-
-      saveLS();
-      renderExpenses();
-      updateTotals();
+      renderBudget();
+      alert('Compra DCA registrada para ' + today);
     };
     $('#btnRefresh').onclick = async () => {
       await fetchPrices();
@@ -1115,9 +1101,86 @@
       await analyze90d();
       updateTotals();
       renderBudget();
+      if (STATE.currentCoinId) showChart(STATE.currentCoinId, STATE.currentCoinName);
+    };
+    $('#btnAddSale').onclick = () => {
+      const coin = $('#saleCoin').value;
+      const date = $('#saleDate').value;
+      const qty = parseFloat($('#saleQty').value);
+      const salePrice = parseFloat($('#salePrice').value);
+      const commission = parseFloat($('#saleCommission').value) || 0;
+      if (!coin || !date || !qty || qty <= 0 || !salePrice || salePrice <= 0 || commission < 0 || !validateDate(date)) {
+        $('#saleError').textContent = 'Por favor, completa todos los campos correctamente (fecha no futura, cantidades y precios positivos, comisión no negativa).';
+        return;
+      }
+      let totalQty = 0;
+      STATE.txs.forEach(t => {
+        if (t.coin === coin && t.buyPrice) {
+          totalQty += t.usd / t.buyPrice;
+        }
+      });
+      STATE.sales.forEach(s => {
+        if (s.coin === coin) totalQty -= s.qty;
+      });
+      if (qty > totalQty) {
+        $('#saleError').textContent = `No tienes suficiente ${coin} para vender (${fmtCrypto(totalQty)} disponible).`;
+        return;
+      }
+      $('#saleError').textContent = '';
+      const usd = qty * salePrice;
+      const gainLoss = calculateGainLoss(coin, qty, salePrice, commission);
+      STATE.sales.unshift({ coin, date, qty, usd, salePrice, commission, gainLoss });
+      STATE.cash += usd - commission;
+      saveLS();
+      renderSales();
+      updateTotals();
+      renderBudget();
+      $('#saleQty').value = '';
+      $('#salePrice').value = '';
+      $('#saleCommission').value = '';
+    };
+    $('#btnAddIncome').onclick = () => {
+      const category = $('#incomeCategory').value;
+      const date = $('#incomeDate').value;
+      const amount = parseFloat($('#incomeAmount').value);
+      const description = $('#incomeDescription').value;
+      if (!category || !date || !amount || amount <= 0 || !validateDate(date)) {
+        $('#incomeError').textContent = 'Por favor, completa todos los campos correctamente (fecha no futura, monto positivo).';
+        return;
+      }
+      $('#incomeError').textContent = '';
+      STATE.incomes.unshift({ category, date, amount, description });
+      STATE.cash += amount;
+      saveLS();
+      renderIncomes();
+      updateTotals();
+      $('#incomeAmount').value = '';
+      $('#incomeDescription').value = '';
+    };
+    $('#btnAddExpense').onclick = () => {
+      const type = $('#expenseType').value;
+      const category = $('#expenseCategory').value;
+      const date = $('#expenseDate').value;
+      const amount = parseFloat($('#expenseAmount').value);
+      const description = $('#expenseDescription').value;
+      if (!type || !category || !date || !amount || amount <= 0 || !validateDate(date)) {
+        $('#expenseError').textContent = 'Por favor, completa todos los campos correctamente (fecha no futura, monto positivo).';
+        return;
+      }
+      if (amount > STATE.cash) {
+        $('#expenseError').textContent = 'No tienes suficiente saldo en Cash para este gasto/inversión.';
+        return;
+      }
+      $('#expenseError').textContent = '';
+      STATE.expenses.unshift({ type, category, date, amount, description });
+      STATE.cash -= amount;
+      saveLS();
+      renderExpenses();
+      updateTotals();
+      $('#expenseAmount').value = '';
+      $('#expenseDescription').value = '';
     };
 
-    /* Inicialización */
     (async function init() {
       $('#txDate').max = new Date().toISOString().split('T')[0];
       $('#saleDate').max = new Date().toISOString().split('T')[0];
@@ -1129,9 +1192,7 @@
       await analyze90d();
       updateTotals();
       renderBudget();
-      renderSales();
-      renderIncomes();
-      renderExpenses();
+      renderDCAHistory();
       setInterval(async () => {
         await fetchPrices();
         await fetchFearGreed();
