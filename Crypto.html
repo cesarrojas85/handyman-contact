@@ -62,12 +62,13 @@
     .table-mini th { background: #232323; color: #ddd; padding: 6px; font-size: 0.8rem; }
     .table-mini td { padding: 6px; font-size: 0.85rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .table-mini th:nth-child(1), .table-mini td:nth-child(1) { max-width: 50px; } /* Moneda */
-    .table-mini th:nth-child(2), .table-mini td:nth-child(2) { max-width: 70px; } /* Invertido */
-    .table-mini th:nth-child(3), .table-mini td:nth-child(3) { max-width: 70px; } /* Actual */
-    .table-mini th:nth-child(4), .table-mini td:nth-child(4) { max-width: 70px; } /* P/L */
+    .table-mini th:nth-child(2), .table-mini td:nth-child(2) { max-width: 65px; } /* Invertido */
+    .table-mini th:nth-child(3), .table-mini td:nth-child(3) { max-width: 65px; } /* Actual */
+    .table-mini th:nth-child(4), .table-mini td:nth-child(4) { max-width: 65px; } /* P/L */
     .table-mini th:nth-child(5), .table-mini td:nth-child(5) { max-width: 50px; text-align: right; } /* P/L % */
-    .table-mini th:nth-child(6), .table-mini td:nth-child(6) { max-width: 70px; } /* Cantidad */
-    .table-mini th:nth-child(7), .table-mini td:nth-child(7) { max-width: 60px; text-align: right; } /* % Portafolio */
+    .table-mini th:nth-child(6), .table-mini td:nth-child(6) { max-width: 65px; } /* Cantidad */
+    .table-mini th:nth-child(7), .table-mini td:nth-child(7) { max-width: 65px; } /* Comisiones */
+    .table-mini th:nth-child(8), .table-mini td:nth-child(8) { max-width: 60px; text-align: right; } /* % Portafolio */
     .row { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; justify-content: flex-end; margin-top: 10px; }
     @media (max-width: 600px) { .row { flex-direction: column; align-items: stretch; } .row .btn { width: 100%; text-align: center; } }
     .small { font-size: .86rem; }
@@ -165,6 +166,7 @@
                 <th>P/L</th>
                 <th>P/L %</th>
                 <th>Cantidad</th>
+                <th>Comisiones</th>
                 <th>% Portafolio</th>
               </tr>
             </thead>
@@ -815,7 +817,7 @@
         const plPct = d.inv > 0 ? (pl / d.inv) * 100 : 0;
         const portfolioPct = current > 0 ? (d.cur / current) * 100 : 0;
         const tr = document.createElement('tr');
-        tr.innerHTML = `<td>${sym}</td><td>${fmt(d.inv, STATE.currency)}</td><td>${fmt(d.cur, STATE.currency)}</td><td style="color:${pl >= 0 ? 'var(--ok)' : 'var(--bad)'};">${pl >= 0 ? '+' : ''}${fmt(pl, STATE.currency)}</td><td style="color:${pl >= 0 ? 'var(--ok)' : 'var(--bad)'};">${plPct.toFixed(1)}%</td><td>${fmtCrypto(d.qty)}</td><td style="text-align:right;">${portfolioPct.toFixed(1)}%</td>`;
+        tr.innerHTML = `<td>${sym}</td><td>${fmt(d.inv, STATE.currency)}</td><td>${fmt(d.cur, STATE.currency)}</td><td style="color:${pl >= 0 ? 'var(--ok)' : 'var(--bad)'};">${pl >= 0 ? '+' : ''}${fmt(pl, STATE.currency)}</td><td style="color:${pl >= 0 ? 'var(--ok)' : 'var(--bad)'};">${plPct.toFixed(1)}%</td><td>${fmtCrypto(d.qty)}</td><td>${fmt(d.com, STATE.currency)}</td><td style="text-align:right;">${portfolioPct.toFixed(1)}%</td>`;
         coinSummary.appendChild(tr);
       });
 
