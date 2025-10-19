@@ -59,14 +59,15 @@
     .pill .lab { color: var(--muted2); font-size: .85rem; }
     .pill .val { font-weight: 700; margin-top: 4px; }
     .table-mini { width: 100%; border-collapse: collapse; margin-top: 12px; }
-    .table-mini th { background: #232323; color: #ddd; padding: 6px; font-size: 0.8rem; } /* Ajustado: padding reducido */
-    .table-mini td { padding: 6px; font-size: 0.85rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; } /* Ajustado: padding reducido, nowrap */
-    .table-mini th:nth-child(1), .table-mini td:nth-child(1) { max-width: 60px; } /* Moneda */
-    .table-mini th:nth-child(2), .table-mini td:nth-child(2) { max-width: 80px; } /* Invertido */
-    .table-mini th:nth-child(3), .table-mini td:nth-child(3) { max-width: 80px; } /* Actual */
-    .table-mini th:nth-child(4), .table-mini td:nth-child(4) { max-width: 80px; } /* P/L */
-    .table-mini th:nth-child(5), .table-mini td:nth-child(5) { max-width: 60px; text-align: right; } /* P/L % */
-    .table-mini th:nth-child(6), .table-mini td:nth-child(6) { max-width: 60px; text-align: right; } /* Nueva: % Portafolio */
+    .table-mini th { background: #232323; color: #ddd; padding: 6px; font-size: 0.8rem; }
+    .table-mini td { padding: 6px; font-size: 0.85rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .table-mini th:nth-child(1), .table-mini td:nth-child(1) { max-width: 50px; } /* Moneda */
+    .table-mini th:nth-child(2), .table-mini td:nth-child(2) { max-width: 70px; } /* Invertido */
+    .table-mini th:nth-child(3), .table-mini td:nth-child(3) { max-width: 70px; } /* Actual */
+    .table-mini th:nth-child(4), .table-mini td:nth-child(4) { max-width: 70px; } /* P/L */
+    .table-mini th:nth-child(5), .table-mini td:nth-child(5) { max-width: 50px; text-align: right; } /* P/L % */
+    .table-mini th:nth-child(6), .table-mini td:nth-child(6) { max-width: 70px; } /* Cantidad */
+    .table-mini th:nth-child(7), .table-mini td:nth-child(7) { max-width: 60px; text-align: right; } /* % Portafolio */
     .row { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; justify-content: flex-end; margin-top: 10px; }
     @media (max-width: 600px) { .row { flex-direction: column; align-items: stretch; } .row .btn { width: 100%; text-align: center; } }
     .small { font-size: .86rem; }
@@ -156,7 +157,17 @@
         <div class="sub-summary">
           <h3 class="small muted" style="margin-bottom:8px;">Resumen por Moneda</h3>
           <table class="table-mini">
-            <thead><tr><th>Moneda</th><th>Invertido</th><th>Actual</th><th>P/L</th><th>P/L %</th><th>% Portafolio</th></tr></thead>
+            <thead>
+              <tr>
+                <th>Moneda</th>
+                <th>Invertido</th>
+                <th>Actual</th>
+                <th>P/L</th>
+                <th>P/L %</th>
+                <th>Cantidad</th>
+                <th>% Portafolio</th>
+              </tr>
+            </thead>
             <tbody id="coinSummary"></tbody>
           </table>
         </div>
@@ -501,28 +512,25 @@
         const portfolioCoins = Object.keys(coinData).filter(sym => coinData[sym].qty > 0);
 
         // Calculate recommendation percentages with Fear & Greed adjustment
-        const fearGreedValue = STATE.fearGreed.value !== null ? STATE.fearGreed.value : 50; // Default to 50 (Neutral) if not available
-        const fearGreedFactor = 1 + ((50 - fearGreedValue) / 100); // Ajuste: +25% en Fear (25), -25% en Greed (75)
-        const scores = stats.map(s => Math.max(s.ret / s.vol, 0) * fearGreedFactor); // Ajustado: Multiplicar por fearGreedFactor
+        const fearGreedValue = STATE.fearGreed.value !== null ? STATE.fearGreed.value : 50;
+        const fearGreedFactor = 1 + ((50 - fearGreedValue) / 100);
+        const scores = stats.map(s => Math.max(s.ret / s.vol, 0) * fearGreedFactor);
         let total = 0;
         const pct = COINS.map((c, i) => {
           if (portfolioCoins.length > 0 && !portfolioCoins.includes(c.sym)) {
-            return 0; // 0% for coins not in portfolio
+            return 0;
           }
           total += scores[i];
           return scores[i];
         });
-        // Normalize percentages to sum to 100%
         const normalizedPct = pct.map(p => (total > 0 ? (p / total) * 100 : (portfolioCoins.length > 0 ? 100 / portfolioCoins.length : 100 / COINS.length)));
 
-        // Update UI and STATE
         COINS.forEach((c, i) => {
           $(c.recoEl).textContent = `${normalizedPct[i].toFixed(1)}%`;
           const el = $(c.trendEl);
           el.textContent = stats[i].trend;
           el.className = `trend ${stats[i].cls}`;
           STATE.recommendations[c.sym] = normalizedPct[i];
-          // Gray out coins not in portfolio
           const row = $(c.recoEl).closest('tr');
           if (portfolioCoins.length > 0 && !portfolioCoins.includes(c.sym)) {
             row.style.opacity = '0.5';
@@ -805,9 +813,9 @@
         if (!d.inv && !d.qty) return;
         const pl = d.cur - d.inv - d.com;
         const plPct = d.inv > 0 ? (pl / d.inv) * 100 : 0;
-        const portfolioPct = current > 0 ? (d.cur / current) * 100 : 0; // Porcentaje del portafolio
+        const portfolioPct = current > 0 ? (d.cur / current) * 100 : 0;
         const tr = document.createElement('tr');
-        tr.innerHTML = `<td>${sym}</td><td>${fmt(d.inv, STATE.currency)}</td><td>${fmt(d.cur, STATE.currency)}</td><td style="color:${pl >= 0 ? 'var(--ok)' : 'var(--bad)'};">${pl >= 0 ? '+' : ''}${fmt(pl, STATE.currency)}</td><td style="color:${pl >= 0 ? 'var(--ok)' : 'var(--bad)'};">${plPct.toFixed(1)}%</td><td style="text-align:right;">${portfolioPct.toFixed(1)}%</td>`;
+        tr.innerHTML = `<td>${sym}</td><td>${fmt(d.inv, STATE.currency)}</td><td>${fmt(d.cur, STATE.currency)}</td><td style="color:${pl >= 0 ? 'var(--ok)' : 'var(--bad)'};">${pl >= 0 ? '+' : ''}${fmt(pl, STATE.currency)}</td><td style="color:${pl >= 0 ? 'var(--ok)' : 'var(--bad)'};">${plPct.toFixed(1)}%</td><td>${fmtCrypto(d.qty)}</td><td style="text-align:right;">${portfolioPct.toFixed(1)}%</td>`;
         coinSummary.appendChild(tr);
       });
 
